@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Text,
   Alert,
+  TextInput,
 } from 'react-native';
 
 import ChessBoardWebView, { ChessBoardWebViewRef } from './ChessBoardWebView';
@@ -22,6 +23,8 @@ function App(): React.JSX.Element {
   const computerColorRef = useRef<'w' | 'b'>('b');
   const currentFenRef = useRef<string>('startpos');
   const [promotionData, setPromotionData] = useState<{ from: string; to: string } | null>(null);
+  const [isFenModalVisible, setIsFenModalVisible] = useState(false);
+  const [fenInput, setFenInput] = useState('');
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -159,6 +162,36 @@ function App(): React.JSX.Element {
     }
   };
 
+  const handleLoadFen = () => {
+    if (!fenInput.trim()) return;
+
+    // Simple validation: a FEN usually has 6 parts
+    // We'll let the WebView's chess.js do the heavy lifting
+    const cleanFen = fenInput.trim();
+
+    // Update internal state
+    const parts = cleanFen.split(' ');
+    const newTurn = (parts[1] || 'w') as 'w' | 'b';
+
+    currentFenRef.current = cleanFen;
+    setTurn(newTurn);
+    turnRef.current = newTurn;
+    setEvaluation(0);
+
+    // Update Board
+    boardRef.current?.setFen(cleanFen);
+
+    // Sync Engine
+    engine.send('ucinewgame');
+    engine.send(`position fen ${cleanFen}`);
+
+    setIsFenModalVisible(false);
+    setFenInput('');
+
+    // Check if it's computer's turn
+    triggerComputerIfItsTurn(newTurn, cleanFen);
+  };
+
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.container}>
@@ -215,6 +248,14 @@ function App(): React.JSX.Element {
           >
             <Text style={styles.buttonText}>Flip</Text>
           </TouchableOpacity>
+          <View style={{ width: 10 }} />
+          <TouchableOpacity
+            style={[styles.button, styles.fenButton]}
+            onPress={() => setIsFenModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.buttonText}>FEN</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Promotion Selection Modal */}
@@ -238,6 +279,44 @@ function App(): React.JSX.Element {
                     <Text style={styles.promotionButtonText}>{item.label}</Text>
                   </TouchableOpacity>
                 ))}
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* FEN Input Modal */}
+        {isFenModalVisible && (
+          <View style={styles.modalOverlay}>
+            <View style={styles.promotionModal}>
+              <Text style={styles.modalTitle}>Load FEN Position</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Paste FEN here..."
+                  placeholderTextColor="#666"
+                  value={fenInput}
+                  onChangeText={setFenInput}
+                  multiline
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => {
+                    setIsFenModalVisible(false);
+                    setFenInput('');
+                  }}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.loadButton]}
+                  onPress={handleLoadFen}
+                >
+                  <Text style={styles.buttonText}>Load</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -317,19 +396,23 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#BB86FC',
     paddingVertical: 14,
-    paddingHorizontal: 30,
+    paddingHorizontal: 20,
     borderRadius: 30,
     elevation: 8,
     shadowColor: '#BB86FC',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 5,
-    minWidth: 120,
+    minWidth: 100,
     alignItems: 'center',
   },
   flipButton: {
     backgroundColor: '#03DAC6',
     shadowColor: '#03DAC6',
+  },
+  fenButton: {
+    backgroundColor: '#779556',
+    shadowColor: '#779556',
   },
   buttonText: {
     color: '#000000',
@@ -381,6 +464,37 @@ const styles = StyleSheet.create({
     color: '#BB86FC',
     fontSize: 16,
     fontWeight: '600',
+  },
+  inputContainer: {
+    width: '100%',
+    backgroundColor: '#000',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 20,
+    minHeight: 80,
+  },
+  textInput: {
+    color: '#FFF',
+    fontSize: 14,
+    textAlignVertical: 'top',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#444',
+  },
+  loadButton: {
+    backgroundColor: '#BB86FC',
   },
 });
 
