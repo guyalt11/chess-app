@@ -16,6 +16,8 @@ function App(): React.JSX.Element {
   const boardRef = useRef<ChessBoardWebViewRef>(null);
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
   const [evaluation, setEvaluation] = useState<number>(0); // 0 is balanced
+  const [turn, setTurn] = useState<'w' | 'b'>('w');
+  const turnRef = useRef<'w' | 'b'>('w');
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -25,8 +27,6 @@ function App(): React.JSX.Element {
         await engine.start();
 
         engine.onOutput((line) => {
-          // console.log('STOCKFISH:', line);
-
           // Parse Evaluation Score
           if (line.includes('score cp') || line.includes('score mate')) {
             const parts = line.split(' ');
@@ -35,14 +35,12 @@ function App(): React.JSX.Element {
 
             if (scoreIndex !== -1) {
               let score = parseInt(parts[scoreIndex + 1], 10) / 100;
-              // UCI score is relative to side-to-move. 
-              // We'll need to flip it if it's black's turn to get white-relative score.
-              // For simplicity, let's assume engine is calculating for side-to-move.
-              setEvaluation(score);
+              // Use turnRef for latest value
+              setEvaluation(turnRef.current === 'w' ? score : -score);
             } else if (mateIndex !== -1) {
-              // Mate in X turns
               const mateIn = parseInt(parts[mateIndex + 1], 10);
-              setEvaluation(mateIn > 0 ? 10 : -10); // Show max/min for mate
+              const score = mateIn > 0 ? 10 : -10;
+              setEvaluation(turnRef.current === 'w' ? score : -score);
             }
           }
 
@@ -76,11 +74,12 @@ function App(): React.JSX.Element {
 
     setupEngine();
     return () => engine.stop();
-  }, []);
+  }, []); // Run once on mount
 
   const handleMove = (moveInfo: { from: string; to: string; fen: string }) => {
-    const turn = moveInfo.fen.split(' ')[1];
-    // console.log('Move made:', moveInfo, 'Turn:', turn);
+    const nextTurn = moveInfo.fen.split(' ')[1] as 'w' | 'b';
+    setTurn(nextTurn);
+    turnRef.current = nextTurn;
     engine.send(`position fen ${moveInfo.fen}`);
     engine.send('go depth 15');
   };
@@ -91,6 +90,8 @@ function App(): React.JSX.Element {
 
   const handleReset = () => {
     setEvaluation(0);
+    setTurn('w');
+    turnRef.current = 'w';
     boardRef.current?.reset();
     engine.send('ucinewgame');
     engine.send('isready');
@@ -103,10 +104,12 @@ function App(): React.JSX.Element {
     boardRef.current?.setOrientation(newOrientation);
   };
 
-  // Calculate Eval Bar height (from -5 to +5 range clamped)
+  // Calculate Eval Bar percentage (White relative: 100% is full white, 0% is full black)
   const getEvalPercentage = () => {
     const clamped = Math.max(-5, Math.min(5, evaluation));
-    // 0 is 50%, 5 is 100%, -5 is 0%
+    // -5 (black) -> 0%
+    // 0 (draw) -> 50%
+    // 5 (white) -> 100%
     return ((clamped + 5) / 10) * 100;
   };
 
@@ -119,31 +122,33 @@ function App(): React.JSX.Element {
         </View>
 
         <View style={styles.contentContainer}>
-          {/* Vertical Evaluation Bar */}
-          <View style={styles.evalBarContainer}>
-            <View style={[styles.evalBarBackground, { height: '100%' }]}>
-              {/* Black part (top) */}
-              <View style={[styles.evalBarFill, {
-                height: `${100 - getEvalPercentage()}%`,
-                backgroundColor: '#404040'
-              }]} />
-              {/* White part (bottom) */}
-              <View style={[styles.evalBarFill, {
-                height: `${getEvalPercentage()}%`,
-                backgroundColor: '#FFFFFF'
-              }]} />
-            </View>
-            <Text style={styles.evalText}>
-              {evaluation > 0 ? `+${evaluation.toFixed(1)}` : evaluation.toFixed(1)}
-            </Text>
-          </View>
-
           <View style={styles.boardContainer}>
             <ChessBoardWebView
               ref={boardRef}
               onMove={handleMove}
               onGameOver={handleGameOver}
             />
+          </View>
+
+          {/* Horizontal Evaluation Bar */}
+          <View style={styles.evalBarContainer}>
+            <View style={[styles.evalBarBackground, { width: '100%' }]}>
+              {/* White part (left) */}
+              <View style={[styles.evalBarFill, {
+                width: `${getEvalPercentage()}%`,
+                backgroundColor: '#FFFFFF'
+              }]} />
+              {/* Black part (right) */}
+              <View style={[styles.evalBarFill, {
+                width: `${100 - getEvalPercentage()}%`,
+                backgroundColor: '#404040'
+              }]} />
+            </View>
+            <View style={styles.evalTextContainer}>
+              <Text style={styles.evalText}>
+                {evaluation > 0 ? `+${evaluation.toFixed(1)}` : evaluation.toFixed(1)}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -190,35 +195,40 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 10,
   },
   evalBarContainer: {
-    width: 30,
-    height: '80%',
+    width: '90%',
+    height: 12,
     backgroundColor: '#333',
-    borderRadius: 4,
+    borderRadius: 6,
     overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginRight: 10,
+    marginTop: 20,
+    position: 'relative',
   },
   evalBarBackground: {
-    width: '100%',
+    height: '100%',
+    flexDirection: 'row',
     backgroundColor: '#000',
   },
   evalBarFill: {
-    width: '100%',
+    height: '100%',
+  },
+  evalTextContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    pointerEvents: 'none',
   },
   evalText: {
-    position: 'absolute',
-    top: 5,
     fontSize: 10,
     fontWeight: 'bold',
     color: '#BB86FC',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 2,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 4,
     borderRadius: 2,
   },
   boardContainer: {
