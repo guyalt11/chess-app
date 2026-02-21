@@ -21,6 +21,7 @@ function App(): React.JSX.Element {
   const [computerColor, setComputerColor] = useState<'w' | 'b'>('b');
   const computerColorRef = useRef<'w' | 'b'>('b');
   const currentFenRef = useRef<string>('startpos');
+  const [promotionData, setPromotionData] = useState<{ from: string; to: string } | null>(null);
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -52,13 +53,14 @@ function App(): React.JSX.Element {
             if (move) {
               const from = move.substring(0, 2);
               const to = move.substring(2, 4);
+              const promotion = move.length === 5 ? move.substring(4, 5) : 'q';
 
               const script = `
                 if (window.board && window.game) {
                   var move = window.game.move({
                     from: '${from}',
                     to: '${to}',
-                    promotion: 'q'
+                    promotion: '${promotion}'
                   });
                   if (move) {
                     window.board.position(window.game.fen());
@@ -146,6 +148,17 @@ function App(): React.JSX.Element {
     return ((clamped + 5) / 10) * 100;
   };
 
+  const handlePromotionNeeded = (from: string, to: string) => {
+    setPromotionData({ from, to });
+  };
+
+  const handlePromotionSelect = (piece: string) => {
+    if (promotionData) {
+      boardRef.current?.confirmPromotion(promotionData.from, promotionData.to, piece);
+      setPromotionData(null);
+    }
+  };
+
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.container}>
@@ -160,6 +173,7 @@ function App(): React.JSX.Element {
               ref={boardRef}
               onMove={handleMove}
               onGameOver={handleGameOver}
+              onPromotionNeeded={handlePromotionNeeded}
             />
           </View>
 
@@ -202,6 +216,32 @@ function App(): React.JSX.Element {
             <Text style={styles.buttonText}>Flip</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Promotion Selection Modal */}
+        {promotionData && (
+          <View style={styles.modalOverlay}>
+            <View style={styles.promotionModal}>
+              <Text style={styles.modalTitle}>Choose Promotion</Text>
+              <View style={styles.promotionOptions}>
+                {[
+                  { label: 'Queen', key: 'q' },
+                  { label: 'Knight', key: 'n' },
+                  { label: 'Rook', key: 'r' },
+                  { label: 'Bishop', key: 'b' },
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={styles.promotionButton}
+                    onPress={() => handlePromotionSelect(item.key)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.promotionButtonText}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
       </SafeAreaView>
     </View>
   );
@@ -297,6 +337,50 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 1,
     textTransform: 'uppercase',
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  promotionModal: {
+    backgroundColor: '#1E1E1E',
+    width: '80%',
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#333',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  promotionOptions: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  promotionButton: {
+    backgroundColor: '#333',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    margin: 8,
+    minWidth: 100,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#BB86FC',
+  },
+  promotionButtonText: {
+    color: '#BB86FC',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

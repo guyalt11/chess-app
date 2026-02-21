@@ -7,15 +7,17 @@ export interface ChessBoardWebViewRef {
   setOrientation: (orientation: 'white' | 'black') => void;
   reset: () => void;
   injectJavaScript: (script: string) => void;
+  confirmPromotion: (from: string, to: string, piece: string) => void;
 }
 
 interface Props {
   onMove?: (move: { from: string; to: string; fen: string }) => void;
   onGameOver?: (result: string) => void;
+  onPromotionNeeded?: (from: string, to: string) => void;
 }
 
 const ChessBoardWebView = forwardRef<ChessBoardWebViewRef, Props>(
-  ({ onMove, onGameOver }, ref) => {
+  ({ onMove, onGameOver, onPromotionNeeded }, ref) => {
     const webViewRef = useRef<WebView>(null);
     const boardSize = Math.floor(Dimensions.get('window').width - 20);
 
@@ -52,6 +54,24 @@ const ChessBoardWebView = forwardRef<ChessBoardWebViewRef, Props>(
       injectJavaScript: (script: string) => {
         webViewRef.current?.injectJavaScript(script);
       },
+      confirmPromotion: (from: string, to: string, piece: string) => {
+        const script = `
+          var move = window.game.move({
+            from: '${from}',
+            to: '${to}',
+            promotion: '${piece}'
+          });
+          if (move) {
+            window.board.position(window.game.fen());
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'MOVE',
+              move: { from: '${from}', to: '${to}', fen: window.game.fen() }
+            }));
+            checkStatus();
+          }
+        `;
+        webViewRef.current?.injectJavaScript(script);
+      },
     }));
 
     const onMessage = (event: WebViewMessageEvent) => {
@@ -61,6 +81,8 @@ const ChessBoardWebView = forwardRef<ChessBoardWebViewRef, Props>(
           onMove(data.move);
         } else if (data.type === 'GAME_OVER' && onGameOver) {
           onGameOver(data.result);
+        } else if (data.type === 'PROMOTION_NEEDED' && onPromotionNeeded) {
+          onPromotionNeeded(data.from, data.to);
         }
       } catch (e) {
         console.error('WebView Message Error:', e);
@@ -143,8 +165,25 @@ const ChessBoardWebView = forwardRef<ChessBoardWebViewRef, Props>(
             }
           }
 
+          function isPromotion(from, to) {
+            var moves = game.moves({ square: from, verbose: true });
+            var move = moves.find(m => m.from === from && m.to === to);
+            return move && move.flags.indexOf('p') !== -1;
+          }
+
           function onSquareClick(square) {
             if (sourceSquare) {
+              if (isPromotion(sourceSquare, square)) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  type: 'PROMOTION_NEEDED',
+                  from: sourceSquare,
+                  to: square
+                }));
+                sourceSquare = null;
+                removeHighlights();
+                return;
+              }
+
               var move = game.move({
                 from: sourceSquare,
                 to: square,
@@ -205,6 +244,15 @@ const ChessBoardWebView = forwardRef<ChessBoardWebViewRef, Props>(
           }
 
           function onDrop (source, target) {
+            if (isPromotion(source, target)) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'PROMOTION_NEEDED',
+                from: source,
+                to: target
+              }));
+              return 'snapback';
+            }
+
             var move = game.move({
               from: source,
               to: target,
