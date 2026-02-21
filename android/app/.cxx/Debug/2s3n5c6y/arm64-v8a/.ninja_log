@@ -1,0 +1,17 @@
+# ninja log v5
+42	209	0	C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs	941e8ee99119f671
+346	19559	7933416155347652	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/47438c9d94d36c19decfff0f17344b35/jni/react/renderer/components/safeareacontext/States.cpp.o	81599144cda0e307
+126	20504	7933416165943558	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/0f38eecfbcb185d0af9e45057f73322f/react/renderer/components/safeareacontext/EventEmitters.cpp.o	4215e91b131fb8c7
+442	21320	7933416176359921	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/54b2c465a60f1d3e13daecde4463d90f/generated/source/codegen/jni/safeareacontext-generated.cpp.o	ad17c0a5ff61ee9d
+9	24684	7933416209295594	CMakeFiles/appmodules.dir/OnLoad.cpp.o	a83a07aebb314178
+52	25813	7933416220928544	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/a9051cbbff3ccd79f0fac3cd5b9c202d/renderer/components/safeareacontext/RNCSafeAreaViewState.cpp.o	88ab1339e082aefc
+601	25827	7933416220908515	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/0f38eecfbcb185d0af9e45057f73322f/react/renderer/components/safeareacontext/ShadowNodes.cpp.o	39f088bf03213880
+277	28627	7933416249382743	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/47438c9d94d36c19decfff0f17344b35/jni/react/renderer/components/safeareacontext/Props.cpp.o	f1cff1ddfe70e69d
+95	28915	7933416252230177	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/75547f04136dffa2817ece79131e2ddc/renderer/components/safeareacontext/ComponentDescriptors.cpp.o	437eb15cc29886e4
+78	29290	7933416256177433	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/c6d843064c6e835c675595f6c75c1ccd/components/safeareacontext/RNCSafeAreaViewShadowNode.cpp.o	c4aaf21d847d86c9
+29292	29650	7933416259902487	C:/Users/guyal/Desktop/Guy/chess/android/app/build/intermediates/cxx/Debug/2s3n5c6y/obj/arm64-v8a/libreact_codegen_safeareacontext.so	f786c7249a13ea17
+33	30116	7933416264400616	CMakeFiles/appmodules.dir/C_/Users/guyal/Desktop/Guy/chess/android/app/build/generated/autolinking/src/main/jni/autolinking.cpp.o	1a2b0f5d69253197
+30117	30298	7933416266536038	C:/Users/guyal/Desktop/Guy/chess/android/app/build/intermediates/cxx/Debug/2s3n5c6y/obj/arm64-v8a/libappmodules.so	e00c446e76f94ec1
+61	1428	0	C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs	941e8ee99119f671
+6	83	0	C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs	941e8ee99119f671
+24	101	0	C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs	941e8ee99119f671
