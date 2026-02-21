@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import ChessBoardWebView, { ChessBoardWebViewRef } from './ChessBoardWebView';
+import SettingsModal from './SettingsModal';
 import engine from './StockfishEngine';
 
 function App(): React.JSX.Element {
@@ -31,6 +32,10 @@ function App(): React.JSX.Element {
   const historyIndexRef = useRef<number>(-1); // -1 means at latest position
   const isReviewingRef = useRef<boolean>(false);
   const historyScrollRef = useRef<ScrollView>(null);
+  const [botElo, setBotElo] = useState<number>(1500);
+  const botEloRef = useRef<number>(1500);
+  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
+  const isEvalOnlyRef = useRef<boolean>(false); // evaluate only, don't play bestmove
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -58,6 +63,11 @@ function App(): React.JSX.Element {
           }
 
           if (line.startsWith('bestmove')) {
+            // If we only asked for evaluation (history review), ignore the bestmove
+            if (isEvalOnlyRef.current) {
+              isEvalOnlyRef.current = false;
+              return;
+            }
             const move = line.split(' ')[1];
             if (move) {
               const from = move.substring(0, 2);
@@ -87,6 +97,10 @@ function App(): React.JSX.Element {
         });
 
         engine.send('uci');
+        // Apply ELO limit on startup
+        engine.send('setoption name UCI_LimitStrength value true');
+        engine.send(`setoption name UCI_Elo value ${botEloRef.current}`);
+        engine.send('isready');
       } catch (error) {
         console.error('Engine Error:', error);
       }
@@ -106,6 +120,15 @@ function App(): React.JSX.Element {
         engine.send('go depth 15');
       }, 400);
     }
+  };
+
+  // Evaluate a position without playing a move (used during history navigation)
+  const evalPositionOnly = (fen: string, turn: 'w' | 'b') => {
+    isEvalOnlyRef.current = true;
+    turnRef.current = turn;
+    const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
+    engine.send(`position ${pos}`);
+    engine.send('go depth 12');
   };
 
   const handleMove = (moveInfo: { from: string; to: string; fen: string; san?: string }) => {
@@ -222,14 +245,15 @@ function App(): React.JSX.Element {
       historyIndexRef.current = newIdx;
       isReviewingRef.current = newIdx < prev.length - 1;
 
-      const targetFen = newIdx === -1 ? null : prev[newIdx]?.fen;
-      if (targetFen) {
-        boardRef.current?.setFen(targetFen);
+      if (newIdx >= 0) {
+        const targetFen = prev[newIdx]?.fen;
         const t = (targetFen.split(' ')[1] || 'w') as 'w' | 'b';
+        boardRef.current?.setFen(targetFen);
         setTurn(t);
         turnRef.current = t;
-      } else if (newIdx === -1) {
-        // Back to start
+        evalPositionOnly(targetFen, t);
+      } else {
+        // Back to start position
         boardRef.current?.injectJavaScript?.(`
           if (window.board && window.game) {
             window.game.reset();
@@ -238,6 +262,7 @@ function App(): React.JSX.Element {
         `);
         setTurn('w');
         turnRef.current = 'w';
+        evalPositionOnly('startpos', 'w');
       }
       return prev;
     });
@@ -247,7 +272,6 @@ function App(): React.JSX.Element {
     setMoveHistory(prev => {
       const currentIdx = historyIndexRef.current;
       if (currentIdx >= prev.length - 1) {
-        // Already at latest
         isReviewingRef.current = false;
         historyIndexRef.current = prev.length - 1;
         return prev;
@@ -264,13 +288,27 @@ function App(): React.JSX.Element {
         turnRef.current = t;
 
         if (!isReviewingRef.current) {
-          // Reached latest position – re-enable engine if it's computer's turn
+          // Reached the latest position — re-enable engine if it's computer's turn
           currentFenRef.current = targetFen;
           triggerComputerIfItsTurn(t, targetFen);
+        } else {
+          evalPositionOnly(targetFen, t);
         }
       }
       return prev;
     });
+  };
+
+  const handleEloChange = (elo: number) => {
+    setBotElo(elo);
+    botEloRef.current = elo;
+    // Apply new ELO to the engine immediately
+    engine.send('setoption name UCI_LimitStrength value true');
+    engine.send(`setoption name UCI_Elo value ${elo}`);
+    engine.send('isready');
+    // Reset the game so the new ELO takes effect cleanly
+    handleReset();
+    setIsSettingsVisible(false);
   };
 
   return (
@@ -279,6 +317,13 @@ function App(): React.JSX.Element {
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <View style={styles.header}>
           <Text style={styles.title}>Grandmaster Chess</Text>
+          <TouchableOpacity
+            style={styles.gearButton}
+            onPress={() => setIsSettingsVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.gearButtonText}>⚙</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.contentContainer}>
@@ -467,6 +512,14 @@ function App(): React.JSX.Element {
             </View>
           </View>
         )}
+
+        {/* Settings Modal */}
+        <SettingsModal
+          visible={isSettingsVisible}
+          currentElo={botElo}
+          onSelectElo={handleEloChange}
+          onClose={() => setIsSettingsVisible(false)}
+        />
       </SafeAreaView>
     </View>
   );
@@ -482,9 +535,23 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
-    paddingTop: 20,
+    paddingTop: 12,
     paddingBottom: 10,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  gearButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#2a2a2a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gearButtonText: {
+    fontSize: 20,
   },
   title: {
     fontSize: 28,
