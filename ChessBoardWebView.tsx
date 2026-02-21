@@ -213,7 +213,7 @@ const ChessBoardWebView = forwardRef<ChessBoardWebViewRef, Props>(
               board.position(game.fen());
               window.ReactNativeWebView.postMessage(JSON.stringify({
                 type: 'MOVE',
-                move: { from: move.from, to: move.to, fen: game.fen() }
+                move: { from: move.from, to: move.to, san: move.san, fen: game.fen() }
               }));
               sourceSquare = null;
               removeHighlights();
@@ -263,7 +263,7 @@ const ChessBoardWebView = forwardRef<ChessBoardWebViewRef, Props>(
 
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'MOVE',
-              move: { from: source, to: target, fen: game.fen() }
+              move: { from: source, to: target, san: move.san, fen: game.fen() }
             }));
             sourceSquare = null;
             removeHighlights();

@@ -9,6 +9,7 @@ import {
   Alert,
   TextInput,
   Platform,
+  ScrollView,
 } from 'react-native';
 
 import ChessBoardWebView, { ChessBoardWebViewRef } from './ChessBoardWebView';
@@ -26,6 +27,10 @@ function App(): React.JSX.Element {
   const [promotionData, setPromotionData] = useState<{ from: string; to: string } | null>(null);
   const [isFenModalVisible, setIsFenModalVisible] = useState(false);
   const [fenInput, setFenInput] = useState('');
+  const [moveHistory, setMoveHistory] = useState<{ san: string; fen: string }[]>([]);
+  const historyIndexRef = useRef<number>(-1); // -1 means at latest position
+  const isReviewingRef = useRef<boolean>(false);
+  const historyScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -70,7 +75,7 @@ function App(): React.JSX.Element {
                     window.board.position(window.game.fen());
                     window.ReactNativeWebView.postMessage(JSON.stringify({
                       type: 'MOVE',
-                      move: { from: '${from}', to: '${to}', fen: window.game.fen() }
+                      move: { from: '${from}', to: '${to}', san: move.san, fen: window.game.fen() }
                     }));
                     checkStatus();
                   }
@@ -93,6 +98,7 @@ function App(): React.JSX.Element {
 
   // Consolidate computer move trigger into a helper
   const triggerComputerIfItsTurn = (currentTurn: 'w' | 'b', currentFen: string) => {
+    if (isReviewingRef.current) return; // Don't play during history review
     if (currentTurn === computerColorRef.current) {
       setTimeout(() => {
         const pos = currentFen === 'startpos' ? 'startpos' : `fen ${currentFen}`;
@@ -102,11 +108,29 @@ function App(): React.JSX.Element {
     }
   };
 
-  const handleMove = (moveInfo: { from: string; to: string; fen: string }) => {
+  const handleMove = (moveInfo: { from: string; to: string; fen: string; san?: string }) => {
     const nextTurn = moveInfo.fen.split(' ')[1] as 'w' | 'b';
     currentFenRef.current = moveInfo.fen;
     setTurn(nextTurn);
     turnRef.current = nextTurn;
+
+    // Capture BEFORE resetting — the setState callback runs async so refs may have changed by then
+    const wasReviewing = isReviewingRef.current;
+    const reviewIdx = historyIndexRef.current;
+    isReviewingRef.current = false;
+
+    // Record move in history, truncating any future moves if we were in review mode
+    setMoveHistory(prev => {
+      const truncated = wasReviewing
+        ? prev.slice(0, reviewIdx + 1)
+        : prev;
+      const updated = [...truncated, { san: moveInfo.san || `${moveInfo.from}-${moveInfo.to}`, fen: moveInfo.fen }];
+      historyIndexRef.current = updated.length - 1;
+      return updated;
+    });
+
+    // Scroll to end of history
+    setTimeout(() => historyScrollRef.current?.scrollToEnd({ animated: true }), 100);
 
     // Trigger computer if it's its turn
     triggerComputerIfItsTurn(nextTurn, moveInfo.fen);
@@ -121,6 +145,9 @@ function App(): React.JSX.Element {
     setTurn('w');
     turnRef.current = 'w';
     currentFenRef.current = 'startpos';
+    setMoveHistory([]);
+    historyIndexRef.current = -1;
+    isReviewingRef.current = false;
     boardRef.current?.reset();
     engine.send('ucinewgame');
     engine.send('isready');
@@ -166,11 +193,7 @@ function App(): React.JSX.Element {
   const handleLoadFen = () => {
     if (!fenInput.trim()) return;
 
-    // Simple validation: a FEN usually has 6 parts
-    // We'll let the WebView's chess.js do the heavy lifting
     const cleanFen = fenInput.trim();
-
-    // Update internal state
     const parts = cleanFen.split(' ');
     const newTurn = (parts[1] || 'w') as 'w' | 'b';
 
@@ -178,19 +201,76 @@ function App(): React.JSX.Element {
     setTurn(newTurn);
     turnRef.current = newTurn;
     setEvaluation(0);
+    setMoveHistory([]);
+    historyIndexRef.current = -1;
+    isReviewingRef.current = false;
 
-    // Update Board
     boardRef.current?.setFen(cleanFen);
-
-    // Sync Engine
     engine.send('ucinewgame');
     engine.send(`position fen ${cleanFen}`);
 
     setIsFenModalVisible(false);
     setFenInput('');
 
-    // Check if it's computer's turn
     triggerComputerIfItsTurn(newTurn, cleanFen);
+  };
+
+  const handleStepBack = () => {
+    setMoveHistory(prev => {
+      const currentIdx = historyIndexRef.current === -1 ? prev.length - 1 : historyIndexRef.current;
+      const newIdx = Math.max(-1, currentIdx - 1);
+      historyIndexRef.current = newIdx;
+      isReviewingRef.current = newIdx < prev.length - 1;
+
+      const targetFen = newIdx === -1 ? null : prev[newIdx]?.fen;
+      if (targetFen) {
+        boardRef.current?.setFen(targetFen);
+        const t = (targetFen.split(' ')[1] || 'w') as 'w' | 'b';
+        setTurn(t);
+        turnRef.current = t;
+      } else if (newIdx === -1) {
+        // Back to start
+        boardRef.current?.injectJavaScript?.(`
+          if (window.board && window.game) {
+            window.game.reset();
+            window.board.start();
+          }
+        `);
+        setTurn('w');
+        turnRef.current = 'w';
+      }
+      return prev;
+    });
+  };
+
+  const handleStepForward = () => {
+    setMoveHistory(prev => {
+      const currentIdx = historyIndexRef.current;
+      if (currentIdx >= prev.length - 1) {
+        // Already at latest
+        isReviewingRef.current = false;
+        historyIndexRef.current = prev.length - 1;
+        return prev;
+      }
+      const newIdx = currentIdx + 1;
+      historyIndexRef.current = newIdx;
+      isReviewingRef.current = newIdx < prev.length - 1;
+
+      const targetFen = prev[newIdx]?.fen;
+      if (targetFen) {
+        boardRef.current?.setFen(targetFen);
+        const t = (targetFen.split(' ')[1] || 'w') as 'w' | 'b';
+        setTurn(t);
+        turnRef.current = t;
+
+        if (!isReviewingRef.current) {
+          // Reached latest position – re-enable engine if it's computer's turn
+          currentFenRef.current = targetFen;
+          triggerComputerIfItsTurn(t, targetFen);
+        }
+      }
+      return prev;
+    });
   };
 
   return (
@@ -214,12 +294,10 @@ function App(): React.JSX.Element {
           {/* Horizontal Evaluation Bar */}
           <View style={styles.evalBarContainer}>
             <View style={[styles.evalBarBackground, { width: '100%' }]}>
-              {/* White part (left) */}
               <View style={[styles.evalBarFill, {
                 width: `${getEvalPercentage()}%`,
                 backgroundColor: '#FFFFFF'
               }]} />
-              {/* Black part (right) */}
               <View style={[styles.evalBarFill, {
                 width: `${100 - getEvalPercentage()}%`,
                 backgroundColor: '#404040'
@@ -229,6 +307,73 @@ function App(): React.JSX.Element {
               <Text style={styles.evalText}>
                 {evaluation > 0 ? `+${evaluation.toFixed(1)}` : evaluation.toFixed(1)}
               </Text>
+            </View>
+          </View>
+
+          {/* Move History + Navigation */}
+          <View style={styles.historyContainer}>
+            <View style={styles.historyNavRow}>
+              <TouchableOpacity style={styles.navButton} onPress={handleStepBack}>
+                <Text style={styles.navButtonText}>◀</Text>
+              </TouchableOpacity>
+              <ScrollView
+                ref={historyScrollRef}
+                horizontal
+                style={styles.historyScroll}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.historyScrollContent}
+              >
+                {moveHistory.length === 0 ? (
+                  <Text style={styles.noMovesText}>No moves yet</Text>
+                ) : (
+                  Array.from({ length: Math.ceil(moveHistory.length / 2) }, (_, i) => (
+                    <View key={i} style={styles.movePair}>
+                      <Text style={styles.moveNumber}>{i + 1}.</Text>
+                      {moveHistory[i * 2] && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            historyIndexRef.current = i * 2;
+                            isReviewingRef.current = i * 2 < moveHistory.length - 1;
+                            boardRef.current?.setFen(moveHistory[i * 2].fen);
+                            const t = (moveHistory[i * 2].fen.split(' ')[1] || 'w') as 'w' | 'b';
+                            setTurn(t);
+                            turnRef.current = t;
+                          }}
+                        >
+                          <Text style={[
+                            styles.moveText,
+                            historyIndexRef.current === i * 2 && styles.moveTextActive
+                          ]}>
+                            {moveHistory[i * 2].san}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                      {moveHistory[i * 2 + 1] && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            historyIndexRef.current = i * 2 + 1;
+                            isReviewingRef.current = (i * 2 + 1) < moveHistory.length - 1;
+                            boardRef.current?.setFen(moveHistory[i * 2 + 1].fen);
+                            const t = (moveHistory[i * 2 + 1].fen.split(' ')[1] || 'w') as 'w' | 'b';
+                            setTurn(t);
+                            turnRef.current = t;
+                          }}
+                        >
+                          <Text style={[
+                            styles.moveText,
+                            historyIndexRef.current === i * 2 + 1 && styles.moveTextActive
+                          ]}>
+                            {moveHistory[i * 2 + 1].san}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+              <TouchableOpacity style={styles.navButton} onPress={handleStepForward}>
+                <Text style={styles.navButtonText}>▶</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -384,6 +529,63 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 4,
     borderRadius: 2,
+  },
+  historyContainer: {
+    width: '100%',
+    marginTop: 8,
+    paddingHorizontal: 6,
+  },
+  historyNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyScroll: {
+    flex: 1,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 8,
+    maxHeight: 44,
+  },
+  historyScrollContent: {
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  movePair: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  moveNumber: {
+    color: '#666',
+    fontSize: 12,
+    marginRight: 2,
+  },
+  moveText: {
+    color: '#CCC',
+    fontSize: 13,
+    fontWeight: '500',
+    paddingHorizontal: 5,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  moveTextActive: {
+    color: '#BB86FC',
+    backgroundColor: 'rgba(187, 134, 252, 0.15)',
+  },
+  noMovesText: {
+    color: '#555',
+    fontSize: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    fontStyle: 'italic',
+  },
+  navButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  navButtonText: {
+    color: '#BB86FC',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   boardContainer: {
     justifyContent: 'center',
