@@ -12,7 +12,7 @@ function App(): React.JSX.Element {
   const chessboardRef = useRef<ChessboardRef>(null);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.root}>
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" />
         <View style={styles.boardContainer}>
@@ -24,6 +24,9 @@ function App(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F5FCFF',
