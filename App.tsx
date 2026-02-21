@@ -18,6 +18,9 @@ function App(): React.JSX.Element {
   const [evaluation, setEvaluation] = useState<number>(0); // 0 is balanced
   const [turn, setTurn] = useState<'w' | 'b'>('w');
   const turnRef = useRef<'w' | 'b'>('w');
+  const [computerColor, setComputerColor] = useState<'w' | 'b'>('b');
+  const computerColorRef = useRef<'w' | 'b'>('b');
+  const currentFenRef = useRef<string>('startpos');
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -57,8 +60,14 @@ function App(): React.JSX.Element {
                     to: '${to}',
                     promotion: 'q'
                   });
-                  window.board.position(window.game.fen());
-                  checkStatus();
+                  if (move) {
+                    window.board.position(window.game.fen());
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'MOVE',
+                      move: { from: '${from}', to: '${to}', fen: window.game.fen() }
+                    }));
+                    checkStatus();
+                  }
                 }
               `;
               boardRef.current?.injectJavaScript?.(script);
@@ -76,12 +85,25 @@ function App(): React.JSX.Element {
     return () => engine.stop();
   }, []); // Run once on mount
 
+  // Consolidate computer move trigger into a helper
+  const triggerComputerIfItsTurn = (currentTurn: 'w' | 'b', currentFen: string) => {
+    if (currentTurn === computerColorRef.current) {
+      setTimeout(() => {
+        const pos = currentFen === 'startpos' ? 'startpos' : `fen ${currentFen}`;
+        engine.send(`position ${pos}`);
+        engine.send('go depth 15');
+      }, 400);
+    }
+  };
+
   const handleMove = (moveInfo: { from: string; to: string; fen: string }) => {
     const nextTurn = moveInfo.fen.split(' ')[1] as 'w' | 'b';
+    currentFenRef.current = moveInfo.fen;
     setTurn(nextTurn);
     turnRef.current = nextTurn;
-    engine.send(`position fen ${moveInfo.fen}`);
-    engine.send('go depth 15');
+
+    // Trigger computer if it's its turn
+    triggerComputerIfItsTurn(nextTurn, moveInfo.fen);
   };
 
   const handleGameOver = (result: string) => {
@@ -92,16 +114,27 @@ function App(): React.JSX.Element {
     setEvaluation(0);
     setTurn('w');
     turnRef.current = 'w';
+    currentFenRef.current = 'startpos';
     boardRef.current?.reset();
     engine.send('ucinewgame');
     engine.send('isready');
     engine.send('position startpos');
+
+    // Check if computer should move (e.g. if it is currently White)
+    triggerComputerIfItsTurn('w', 'startpos');
   };
 
   const handleFlip = () => {
     const newOrientation = orientation === 'white' ? 'black' : 'white';
+    const newComputerColor = computerColor === 'w' ? 'b' : 'w';
+
     setOrientation(newOrientation);
+    setComputerColor(newComputerColor);
+    computerColorRef.current = newComputerColor;
     boardRef.current?.setOrientation(newOrientation);
+
+    // Check if it became the computer's turn after flipping colors
+    triggerComputerIfItsTurn(turnRef.current, currentFenRef.current);
   };
 
   // Calculate Eval Bar percentage (White relative: 100% is full white, 0% is full black)
@@ -206,7 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
     borderRadius: 6,
     overflow: 'hidden',
-    marginTop: 20,
+    marginTop: 10,
     position: 'relative',
   },
   evalBarBackground: {
@@ -232,7 +265,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   boardContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
