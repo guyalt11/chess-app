@@ -12,54 +12,6 @@ if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
 endif()
 
-# react_codegen_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/CMakeLists.txt:9 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/*.cpp")
-set(OLD_GLOB
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/rngesturehandler_codegen-generated.cpp"
-  )
-if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
-  message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
-endif()
-
-# react_codegen_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/CMakeLists.txt:9 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/react/renderer/components/rngesturehandler_codegen/*.cpp")
-set(OLD_GLOB
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/react/renderer/components/rngesturehandler_codegen/ComponentDescriptors.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/react/renderer/components/rngesturehandler_codegen/EventEmitters.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/react/renderer/components/rngesturehandler_codegen/Props.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/react/renderer/components/rngesturehandler_codegen/ShadowNodes.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/react/renderer/components/rngesturehandler_codegen/States.cpp"
-  )
-if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
-  message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
-endif()
-
-# react_codegen_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/CMakeLists.txt:9 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/*.cpp")
-set(OLD_GLOB
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/rnreanimated-generated.cpp"
-  )
-if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
-  message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
-endif()
-
-# react_codegen_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/CMakeLists.txt:9 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/react/renderer/components/rnreanimated/*.cpp")
-set(OLD_GLOB
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/react/renderer/components/rnreanimated/ComponentDescriptors.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/react/renderer/components/rnreanimated/EventEmitters.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/react/renderer/components/rnreanimated/Props.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/react/renderer/components/rnreanimated/ShadowNodes.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/react/renderer/components/rnreanimated/States.cpp"
-  )
-if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
-  message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
-endif()
-
 # LIB_CUSTOM_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt:12 (file)
 file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-safe-area-context/android/src/main/jni/*.cpp")
 set(OLD_GLOB
@@ -104,61 +56,24 @@ if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
 endif()
 
-# rnsvg_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/CMakeLists.txt:10 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/*.cpp")
+# react_codegen_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/CMakeLists.txt:9 (file)
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/*.cpp")
 set(OLD_GLOB
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/rnsvg.cpp"
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/RNCWebViewSpec-generated.cpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")
   file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
 endif()
 
-# rnsvg_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/CMakeLists.txt:10 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../../common/cpp/react/renderer/components/rnsvg/*.cpp")
+# react_codegen_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/CMakeLists.txt:9 (file)
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/react/renderer/components/RNCWebViewSpec/*.cpp")
 set(OLD_GLOB
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../../common/cpp/react/renderer/components/rnsvg/RNSVGImageShadowNode.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../../common/cpp/react/renderer/components/rnsvg/RNSVGImageState.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../../common/cpp/react/renderer/components/rnsvg/RNSVGLayoutableShadowNode.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../../common/cpp/react/renderer/components/rnsvg/RNSVGShadowNodes.cpp"
-  )
-if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
-  message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
-endif()
-
-# rnsvg_codegen_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/CMakeLists.txt:11 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/rnsvg/*cpp")
-set(OLD_GLOB
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/rnsvg/ComponentDescriptors.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/rnsvg/EventEmitters.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/rnsvg/Props.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/rnsvg/ShadowNodes.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/rnsvg/States.cpp"
-  )
-if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
-  message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
-endif()
-
-# react_codegen_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/CMakeLists.txt:9 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/*.cpp")
-set(OLD_GLOB
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/rnworklets-generated.cpp"
-  )
-if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
-  message("-- GLOB mismatch!")
-  file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
-endif()
-
-# react_codegen_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/CMakeLists.txt:9 (file)
-file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/react/renderer/components/rnworklets/*.cpp")
-set(OLD_GLOB
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/react/renderer/components/rnworklets/ComponentDescriptors.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/react/renderer/components/rnworklets/EventEmitters.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/react/renderer/components/rnworklets/Props.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/react/renderer/components/rnworklets/ShadowNodes.cpp"
-  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/react/renderer/components/rnworklets/States.cpp"
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/react/renderer/components/RNCWebViewSpec/ComponentDescriptors.cpp"
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/react/renderer/components/RNCWebViewSpec/EventEmitters.cpp"
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/react/renderer/components/RNCWebViewSpec/Props.cpp"
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/react/renderer/components/RNCWebViewSpec/ShadowNodes.cpp"
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/react/renderer/components/RNCWebViewSpec/States.cpp"
   )
 if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   message("-- GLOB mismatch!")

@@ -184,22 +184,6 @@
 				},
 				{
 					"backtrace" : 4,
-					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/."
-				},
-				{
-					"backtrace" : 4,
-					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/react/renderer/components/rngesturehandler_codegen"
-				},
-				{
-					"backtrace" : 4,
-					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/."
-				},
-				{
-					"backtrace" : 4,
-					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/react/renderer/components/rnreanimated"
-				},
-				{
-					"backtrace" : 4,
 					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-safe-area-context/android/src/main/jni/."
 				},
 				{
@@ -216,31 +200,11 @@
 				},
 				{
 					"backtrace" : 4,
-					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/."
+					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/."
 				},
 				{
 					"backtrace" : 4,
-					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../../common/cpp"
-				},
-				{
-					"backtrace" : 4,
-					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../build/generated/source/codegen/jni"
-				},
-				{
-					"backtrace" : 4,
-					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/rnsvg"
-				},
-				{
-					"backtrace" : 4,
-					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-svg/android/src/main/jni"
-				},
-				{
-					"backtrace" : 4,
-					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/."
-				},
-				{
-					"backtrace" : 4,
-					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/react/renderer/components/rnworklets"
+					"path" : "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-webview/android/build/generated/source/codegen/jni/react/renderer/components/RNCWebViewSpec"
 				},
 				{
 					"backtrace" : 5,
@@ -274,19 +238,7 @@
 	[
 		{
 			"backtrace" : 4,
-			"id" : "react_codegen_rngesturehandler_codegen::@39f233abcd2c728bc6ec"
-		},
-		{
-			"backtrace" : 4,
-			"id" : "react_codegen_rnsvg::@4f40eb209d0c0b4a3b65"
-		},
-		{
-			"backtrace" : 4,
-			"id" : "react_codegen_rnworklets::@68f58d84d4754f193387"
-		},
-		{
-			"backtrace" : 4,
-			"id" : "react_codegen_rnreanimated::@8afabad14bfffa3f8b9a"
+			"id" : "react_codegen_RNCWebViewSpec::@eb48929f9f7453740a6c"
 		},
 		{
 			"backtrace" : 4,
@@ -305,11 +257,6 @@
 			{
 				"backtrace" : 4,
 				"fragment" : "C:\\Users\\guyal\\Desktop\\Guy\\chess\\android\\app\\build\\intermediates\\cxx\\Debug\\2s3n5c6y\\obj\\arm64-v8a\\libreact_codegen_safeareacontext.so",
-				"role" : "libraries"
-			},
-			{
-				"backtrace" : 4,
-				"fragment" : "C:\\Users\\guyal\\Desktop\\Guy\\chess\\android\\app\\build\\intermediates\\cxx\\Debug\\2s3n5c6y\\obj\\arm64-v8a\\libreact_codegen_rnsvg.so",
 				"role" : "libraries"
 			},
 			{
@@ -364,19 +311,7 @@
 				4,
 				5,
 				6,
-				7,
-				8,
-				9,
-				10,
-				11,
-				12,
-				13,
-				14,
-				15,
-				16,
-				17,
-				18,
-				19
+				7
 			]
 		}
 	],
@@ -397,109 +332,37 @@
 		{
 			"backtrace" : 4,
 			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rngesturehandler_codegen_autolinked_build/CMakeFiles/react_codegen_rngesturehandler_codegen.dir/react/renderer/components/rngesturehandler_codegen/ComponentDescriptors.cpp.o",
+			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/RNCWebViewSpec_autolinked_build/CMakeFiles/react_codegen_RNCWebViewSpec.dir/RNCWebViewSpec-generated.cpp.o",
 			"sourceGroupIndex" : 1
 		},
 		{
 			"backtrace" : 4,
 			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rngesturehandler_codegen_autolinked_build/CMakeFiles/react_codegen_rngesturehandler_codegen.dir/react/renderer/components/rngesturehandler_codegen/EventEmitters.cpp.o",
+			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/RNCWebViewSpec_autolinked_build/CMakeFiles/react_codegen_RNCWebViewSpec.dir/react/renderer/components/RNCWebViewSpec/ComponentDescriptors.cpp.o",
 			"sourceGroupIndex" : 1
 		},
 		{
 			"backtrace" : 4,
 			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rngesturehandler_codegen_autolinked_build/CMakeFiles/react_codegen_rngesturehandler_codegen.dir/react/renderer/components/rngesturehandler_codegen/Props.cpp.o",
+			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/RNCWebViewSpec_autolinked_build/CMakeFiles/react_codegen_RNCWebViewSpec.dir/react/renderer/components/RNCWebViewSpec/EventEmitters.cpp.o",
 			"sourceGroupIndex" : 1
 		},
 		{
 			"backtrace" : 4,
 			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rngesturehandler_codegen_autolinked_build/CMakeFiles/react_codegen_rngesturehandler_codegen.dir/react/renderer/components/rngesturehandler_codegen/ShadowNodes.cpp.o",
+			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/RNCWebViewSpec_autolinked_build/CMakeFiles/react_codegen_RNCWebViewSpec.dir/react/renderer/components/RNCWebViewSpec/Props.cpp.o",
 			"sourceGroupIndex" : 1
 		},
 		{
 			"backtrace" : 4,
 			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rngesturehandler_codegen_autolinked_build/CMakeFiles/react_codegen_rngesturehandler_codegen.dir/react/renderer/components/rngesturehandler_codegen/States.cpp.o",
+			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/RNCWebViewSpec_autolinked_build/CMakeFiles/react_codegen_RNCWebViewSpec.dir/react/renderer/components/RNCWebViewSpec/ShadowNodes.cpp.o",
 			"sourceGroupIndex" : 1
 		},
 		{
 			"backtrace" : 4,
 			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rngesturehandler_codegen_autolinked_build/CMakeFiles/react_codegen_rngesturehandler_codegen.dir/rngesturehandler_codegen-generated.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnreanimated_autolinked_build/CMakeFiles/react_codegen_rnreanimated.dir/react/renderer/components/rnreanimated/ComponentDescriptors.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnreanimated_autolinked_build/CMakeFiles/react_codegen_rnreanimated.dir/react/renderer/components/rnreanimated/EventEmitters.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnreanimated_autolinked_build/CMakeFiles/react_codegen_rnreanimated.dir/react/renderer/components/rnreanimated/Props.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnreanimated_autolinked_build/CMakeFiles/react_codegen_rnreanimated.dir/react/renderer/components/rnreanimated/ShadowNodes.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnreanimated_autolinked_build/CMakeFiles/react_codegen_rnreanimated.dir/react/renderer/components/rnreanimated/States.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnreanimated_autolinked_build/CMakeFiles/react_codegen_rnreanimated.dir/rnreanimated-generated.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnworklets_autolinked_build/CMakeFiles/react_codegen_rnworklets.dir/react/renderer/components/rnworklets/ComponentDescriptors.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnworklets_autolinked_build/CMakeFiles/react_codegen_rnworklets.dir/react/renderer/components/rnworklets/EventEmitters.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnworklets_autolinked_build/CMakeFiles/react_codegen_rnworklets.dir/react/renderer/components/rnworklets/Props.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnworklets_autolinked_build/CMakeFiles/react_codegen_rnworklets.dir/react/renderer/components/rnworklets/ShadowNodes.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnworklets_autolinked_build/CMakeFiles/react_codegen_rnworklets.dir/react/renderer/components/rnworklets/States.cpp.o",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 4,
-			"isGenerated" : true,
-			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/rnworklets_autolinked_build/CMakeFiles/react_codegen_rnworklets.dir/rnworklets-generated.cpp.o",
+			"path" : "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/RNCWebViewSpec_autolinked_build/CMakeFiles/react_codegen_RNCWebViewSpec.dir/react/renderer/components/RNCWebViewSpec/States.cpp.o",
 			"sourceGroupIndex" : 1
 		}
 	],
