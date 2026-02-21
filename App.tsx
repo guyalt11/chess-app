@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,9 +7,40 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Chessboard, { ChessboardRef } from 'react-native-chessboard';
+import engine from './StockfishEngine';
 
 function App(): React.JSX.Element {
   const chessboardRef = useRef<ChessboardRef>(null);
+
+  useEffect(() => {
+    const setupEngine = async () => {
+      try {
+        console.log('Initializing Stockfish...');
+        const initPath = await engine.init();
+        console.log('Binary extracted to:', initPath);
+
+        const startMsg = await engine.start();
+        console.log(startMsg);
+
+        // Listen for output
+        const removeListener = engine.onOutput((line) => {
+          console.log('STOCKFISH:', line);
+        });
+
+        // Test UCI handshake
+        engine.send('uci');
+
+        return () => {
+          removeListener();
+          engine.stop();
+        };
+      } catch (error) {
+        console.error('Engine Error:', error);
+      }
+    };
+
+    setupEngine();
+  }, []);
 
   return (
     <GestureHandlerRootView style={styles.root}>

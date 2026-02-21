@@ -1,4 +1,0 @@
-C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir
-C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir
-C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/edit_cache.dir
-C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/rebuild_cache.dir

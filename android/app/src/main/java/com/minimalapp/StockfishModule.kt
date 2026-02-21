@@ -24,16 +24,7 @@ class StockfishModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
             val engineDir = File(reactApplicationContext.filesDir, "stockfish")
             if (!engineDir.exists()) engineDir.mkdirs()
 
-            val binaryFile = File(engineDir, "stockfish")
-            
-            // Extract binary from assets
-            reactApplicationContext.assets.open("stockfish/stockfish").use { input ->
-                FileOutputStream(binaryFile).use { output ->
-                    input.copyTo(output)
-                }
-            }
-
-            // Extract NNUE files
+            // Extract NNUE files from assets
             val assetFiles = reactApplicationContext.assets.list("stockfish") ?: emptyArray()
             for (fileName in assetFiles) {
                 if (fileName.endsWith(".nnue")) {
@@ -46,9 +37,7 @@ class StockfishModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
                 }
             }
 
-            // Set executable permission
-            binaryFile.setExecutable(true)
-            promise.resolve(binaryFile.absolutePath)
+            promise.resolve("Engine assets initialized")
         } catch (e: Exception) {
             promise.reject("INIT_ERROR", e.message)
         }
@@ -62,9 +51,19 @@ class StockfishModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
         }
 
         try {
-            val binaryFile = File(reactApplicationContext.filesDir, "stockfish/stockfish")
+            val libraryDir = reactApplicationContext.applicationInfo.nativeLibraryDir
+            val binaryFile = File(libraryDir, "libstockfish.so")
+            
+            if (!binaryFile.exists()) {
+                 promise.reject("START_ERROR", "Engine binary not found at ${binaryFile.absolutePath}")
+                 return
+            }
+
+            val workingDir = File(reactApplicationContext.filesDir, "stockfish")
+            if (!workingDir.exists()) workingDir.mkdirs()
+
             process = ProcessBuilder(binaryFile.absolutePath)
-                .directory(binaryFile.parentFile)
+                .directory(workingDir)
                 .redirectErrorStream(true)
                 .start()
 
@@ -72,7 +71,6 @@ class StockfishModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
             inputWriter = BufferedWriter(OutputStreamWriter(process?.outputStream))
             isRunning = true
 
-            // Start reading output in a separate thread
             Thread {
                 try {
                     while (isRunning) {
