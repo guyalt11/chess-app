@@ -8,6 +8,7 @@ import {
   Text,
   Alert,
   TextInput,
+  Platform,
 } from 'react-native';
 
 import ChessBoardWebView, { ChessBoardWebViewRef } from './ChessBoardWebView';
@@ -195,7 +196,7 @@ function App(): React.JSX.Element {
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <View style={styles.header}>
           <Text style={styles.title}>Grandmaster Chess</Text>
         </View>
@@ -333,6 +334,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
     paddingTop: 20,
