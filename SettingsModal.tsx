@@ -38,11 +38,9 @@ interface Props {
     currentElo: number;
     onSelectElo: (elo: number) => void;
     onClose: () => void;
-    isEngineMode: boolean;
-    onToggleEngineMode: (isEngine: boolean) => void;
 }
 
-export default function SettingsModal({ visible, currentElo, onSelectElo, onClose, isEngineMode, onToggleEngineMode }: Props) {
+export default function SettingsModal({ visible, currentElo, onSelectElo, onClose }: Props) {
     if (!visible) return null;
 
     return (
@@ -62,29 +60,6 @@ export default function SettingsModal({ visible, currentElo, onSelectElo, onClos
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
                 >
-                    {/* Mode Selection */}
-                    <Text style={styles.sectionLabel}>⚙️  Game Mode</Text>
-                    <Text style={styles.sectionSub}>Play against Stockfish or Lichess Opening Database</Text>
-
-                    <View style={styles.togglePill}>
-                        <TouchableOpacity
-                            style={[styles.toggleOption, isEngineMode && styles.toggleOptionActive]}
-                            onPress={() => onToggleEngineMode(true)}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={[styles.toggleText, isEngineMode && styles.toggleTextActive]}>Engine</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.toggleOption, !isEngineMode && styles.toggleOptionActive]}
-                            onPress={() => onToggleEngineMode(false)}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={[styles.toggleText, !isEngineMode && styles.toggleTextActive]}>Database</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <View style={{ height: 30 }} />
-
                     {/* Section Label */}
                     <Text style={styles.sectionLabel}>🤖  Bot Strength</Text>
                     <Text style={styles.sectionSub}>Choose the Elo rating of the computer opponent</Text>
@@ -290,29 +265,5 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '900',
     },
-    togglePill: {
-        flexDirection: 'row',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 30,
-        borderWidth: 1,
-        borderColor: '#3F8F88',
-        overflow: 'hidden',
-    },
-    toggleOption: {
-        flex: 1,
-        paddingVertical: 12,
-        alignItems: 'center',
-    },
-    toggleOptionActive: {
-        backgroundColor: '#3F8F88',
-    },
-    toggleText: {
-        color: '#888',
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    toggleTextActive: {
-        color: '#D9FDF8',
-        fontWeight: 'bold',
-    },
+
 });

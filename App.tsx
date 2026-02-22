@@ -37,8 +37,8 @@ function App(): React.JSX.Element {
   const botEloRef = useRef<number>(1500);
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const isEvalOnlyRef = useRef<boolean>(false); // evaluate only, don't play bestmove
-  const [isEngineMode, setIsEngineMode] = useState(true);
-  const isEngineModeRef = useRef(true);
+  const [isEngineMode, setIsEngineMode] = useState(false);
+  const isEngineModeRef = useRef(false);
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -134,28 +134,36 @@ function App(): React.JSX.Element {
     }
   };
 
-  // Fetch the most-played move from the Lichess opening explorer
+  // Fetch a valid move from the Lichess opening explorer
   const playLichessDbMove = async (fen: string) => {
     try {
       const fenForApi =
         fen === 'startpos'
           ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
           : fen;
-      const url = `https://explorer.lichess.ovh/lichess?fen=${encodeURIComponent(fenForApi)}&moves=5&topGames=0&recentGames=0`;
+      const url = `https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fenForApi)}&moves=15&topGames=0&recentGames=0`;
       const response = await fetch(url);
       const data = await response.json();
 
-      if (!data.moves || data.moves.length === 0) {
-        Alert.alert(
-          'No games found',
-          'No database games are available for this position.',
-          [{ text: 'OK' }],
-        );
+      const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > 50);
+
+      if (validMoves.length === 0) {
+        console.log('No DB moves with > 50 games found. Switching to Engine.');
+        Alert.alert('Database Exhausted', 'No common moves found. Switching to Stockfish.', [{ text: 'OK' }]);
+        setIsEngineMode(true);
+        isEngineModeRef.current = true;
+        // Fallback to engine
+        const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
+        engine.send(`position ${pos}`);
+        engine.send('go depth 15');
         return;
       }
 
-      // Pick the most-played move (already sorted by popularity)
-      const bestMove: string = data.moves[0].uci; // e.g. "e2e4"
+      console.log('Available DB Moves (> 50 games):', validMoves.map((m: any) => ({ uci: m.uci, games: m.white + m.draws + m.black })));
+
+      // Pick a random valid move
+      const randomIndex = Math.floor(Math.random() * validMoves.length);
+      const bestMove: string = validMoves[randomIndex].uci; // e.g. "e2e4"
       const from = bestMove.substring(0, 2);
       const to = bestMove.substring(2, 4);
       const promotion = bestMove.length === 5 ? bestMove.substring(4, 5) : 'q';
@@ -179,7 +187,13 @@ function App(): React.JSX.Element {
       `;
       boardRef.current?.injectJavaScript?.(script);
     } catch (error) {
-      Alert.alert('Connection Error', 'Could not reach the Lichess database.', [{ text: 'OK' }]);
+      console.log('DB Error:', error);
+      Alert.alert('Connection Error', 'Could not reach the Lichess database. Switching to Stockfish.', [{ text: 'OK' }]);
+      setIsEngineMode(true);
+      isEngineModeRef.current = true;
+      const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
+      engine.send(`position ${pos}`);
+      engine.send('go depth 15');
     }
   };
 
@@ -233,6 +247,8 @@ function App(): React.JSX.Element {
     setMoveHistory([]);
     historyIndexRef.current = -1;
     isReviewingRef.current = false;
+    setIsEngineMode(false); // Reset to DB mode on new game
+    isEngineModeRef.current = false;
     boardRef.current?.reset();
     engine.send('ucinewgame');
     engine.send('isready');
@@ -290,6 +306,8 @@ function App(): React.JSX.Element {
     setMoveHistory([]);
     historyIndexRef.current = -1;
     isReviewingRef.current = false;
+    setIsEngineMode(false); // Reset mode on new position
+    isEngineModeRef.current = false;
 
     boardRef.current?.setFen(cleanFen);
     engine.send('ucinewgame');
@@ -601,11 +619,6 @@ function App(): React.JSX.Element {
           currentElo={botElo}
           onSelectElo={handleEloChange}
           onClose={() => setIsSettingsVisible(false)}
-          isEngineMode={isEngineMode}
-          onToggleEngineMode={(val) => {
-            setIsEngineMode(val);
-            isEngineModeRef.current = val;
-          }}
         />
       </SafeAreaView>
     </View>
