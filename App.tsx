@@ -25,6 +25,7 @@ function App(): React.JSX.Element {
   const [computerColor, setComputerColor] = useState<'w' | 'b'>('b');
   const computerColorRef = useRef<'w' | 'b'>('b');
   const currentFenRef = useRef<string>('startpos');
+  const startFenRef = useRef<string>('startpos'); // The position the current game started from
   const [promotionData, setPromotionData] = useState<{ from: string; to: string } | null>(null);
   const [isFenModalVisible, setIsFenModalVisible] = useState(false);
   const [fenInput, setFenInput] = useState('');
@@ -63,10 +64,13 @@ function App(): React.JSX.Element {
           }
 
           if (line.startsWith('bestmove')) {
-            // If we only asked for evaluation (history review), ignore the bestmove
+            // Swallow bestmove if we're doing eval-only or in review mode
             if (isEvalOnlyRef.current) {
               isEvalOnlyRef.current = false;
               return;
+            }
+            if (isReviewingRef.current) {
+              return; // Leftover engine search from before navigation started
             }
             const move = line.split(' ')[1];
             if (move) {
@@ -168,6 +172,7 @@ function App(): React.JSX.Element {
     setTurn('w');
     turnRef.current = 'w';
     currentFenRef.current = 'startpos';
+    startFenRef.current = 'startpos';
     setMoveHistory([]);
     historyIndexRef.current = -1;
     isReviewingRef.current = false;
@@ -221,6 +226,7 @@ function App(): React.JSX.Element {
     const newTurn = (parts[1] || 'w') as 'w' | 'b';
 
     currentFenRef.current = cleanFen;
+    startFenRef.current = cleanFen; // Remember this as the game's starting point
     setTurn(newTurn);
     turnRef.current = newTurn;
     setEvaluation(0);
@@ -239,11 +245,16 @@ function App(): React.JSX.Element {
   };
 
   const handleStepBack = () => {
+    // Set review mode synchronously BEFORE anything async,
+    // so any in-flight bestmove is caught by the guard above.
+    isReviewingRef.current = true;
+    engine.send('stop'); // cancel any ongoing engine search
+
     setMoveHistory(prev => {
       const currentIdx = historyIndexRef.current === -1 ? prev.length - 1 : historyIndexRef.current;
-      const newIdx = Math.max(-1, currentIdx - 1);
+      const newIdx = Math.max(-1, currentIdx - 2);
       historyIndexRef.current = newIdx;
-      isReviewingRef.current = newIdx < prev.length - 1;
+      // isReviewingRef stays true (we always go back into history)
 
       if (newIdx >= 0) {
         const targetFen = prev[newIdx]?.fen;
@@ -253,22 +264,32 @@ function App(): React.JSX.Element {
         turnRef.current = t;
         evalPositionOnly(targetFen, t);
       } else {
-        // Back to start position
-        boardRef.current?.injectJavaScript?.(`
-          if (window.board && window.game) {
-            window.game.reset();
-            window.board.start();
-          }
-        `);
-        setTurn('w');
-        turnRef.current = 'w';
-        evalPositionOnly('startpos', 'w');
+        // Back to the game's starting position (could be a loaded FEN, not necessarily standard start)
+        const startFen = startFenRef.current;
+        if (startFen === 'startpos') {
+          boardRef.current?.injectJavaScript?.(`
+            if (window.board && window.game) {
+              window.game.reset();
+              window.board.start();
+            }
+          `);
+        } else {
+          boardRef.current?.setFen(startFen);
+        }
+        const startTurn = startFen === 'startpos' ? 'w' : (startFen.split(' ')[1] || 'w') as 'w' | 'b';
+        setTurn(startTurn);
+        turnRef.current = startTurn;
+        evalPositionOnly(startFen === 'startpos' ? 'startpos' : startFen, startTurn);
       }
       return prev;
     });
   };
 
   const handleStepForward = () => {
+    // Set review mode synchronously BEFORE anything async
+    isReviewingRef.current = true;
+    engine.send('stop'); // cancel any ongoing engine search
+
     setMoveHistory(prev => {
       const currentIdx = historyIndexRef.current;
       if (currentIdx >= prev.length - 1) {
@@ -276,7 +297,8 @@ function App(): React.JSX.Element {
         historyIndexRef.current = prev.length - 1;
         return prev;
       }
-      const newIdx = currentIdx + 1;
+      // Move 2 half-moves forward, clamped to the last available move
+      const newIdx = Math.min(prev.length - 1, currentIdx + 2);
       historyIndexRef.current = newIdx;
       isReviewingRef.current = newIdx < prev.length - 1;
 
