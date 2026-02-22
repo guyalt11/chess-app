@@ -398,7 +398,7 @@ function App(): React.JSX.Element {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <View style={styles.header}>
-          <Text style={styles.title}>Grandmaster Chess</Text>
+          <Text style={styles.title}>BookWarm</Text>
           <TouchableOpacity
             style={styles.gearButton}
             onPress={() => setIsSettingsVisible(true)}
@@ -582,7 +582,7 @@ function App(): React.JSX.Element {
                     setFenInput('');
                   }}
                 >
-                  <Text style={styles.buttonText}>Cancel</Text>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalButton, styles.loadButton]}
@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: '#D9FDF8', // Light Cyan background
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
@@ -633,18 +633,22 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#E3B23C', // Gold
     justifyContent: 'center',
     alignItems: 'center',
   },
   gearButtonText: {
     fontSize: 20,
+    color: '#121212',
   },
   title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 1,
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#3F8F88', // Teal
+    letterSpacing: 2,
+    textAlign: 'center',
+    flex: 1,
+    marginLeft: 38, // offset the gear button width to keep it centered
   },
   contentContainer: {
     flex: 1,
@@ -656,16 +660,18 @@ const styles = StyleSheet.create({
   evalBarContainer: {
     width: '90%',
     height: 12,
-    backgroundColor: '#333',
+    backgroundColor: '#3F8F88',
     borderRadius: 6,
     overflow: 'hidden',
     marginTop: 10,
     position: 'relative',
+    borderWidth: 1,
+    borderColor: '#3F8F88',
   },
   evalBarBackground: {
     height: '100%',
     flexDirection: 'row',
-    backgroundColor: '#000',
+    backgroundColor: '#1E504A', // Darker Teal
   },
   evalBarFill: {
     height: '100%',
@@ -680,7 +686,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     color: '#D9FDF8',
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(30,80,74,0.7)',
     paddingHorizontal: 4,
     borderRadius: 2,
   },
@@ -695,7 +701,7 @@ const styles = StyleSheet.create({
   },
   historyScroll: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#3F8F88', // Teal
     borderRadius: 8,
     maxHeight: 44,
   },
@@ -709,24 +715,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   moveNumber: {
-    color: '#666',
+    color: '#D9FDF8',
     fontSize: 12,
     marginRight: 2,
+    opacity: 0.8,
   },
   moveText: {
-    color: '#CCC',
+    color: '#D9FDF8',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     paddingHorizontal: 5,
     paddingVertical: 6,
     borderRadius: 4,
   },
   moveTextActive: {
-    color: '#E3B23C',
-    backgroundColor: 'rgba(227, 178, 60, 0.15)',
+    color: '#121212',
+    backgroundColor: '#E3B23C', // Gold indicator
   },
   noMovesText: {
-    color: '#555',
+    color: '#D9FDF8',
     fontSize: 12,
     paddingHorizontal: 8,
     paddingVertical: 12,
@@ -737,7 +744,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   navButtonText: {
-    color: '#3F8F88',
+    color: '#E3B23C', // Gold text
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -768,7 +775,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   fenButton: {
-    backgroundColor: '#D9FDF8',
+    backgroundColor: '#3F8F88',
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 30,
@@ -780,13 +787,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fenButtonText: {
-    color: '#121212',
+    color: '#D9FDF8',
     fontSize: 16,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   buttonText: {
-    color: '#000000',
+    color: '#121212',
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  cancelButtonText: {
+    color: '#D9FDF8',
     fontSize: 16,
     fontWeight: 'bold',
     letterSpacing: 1,
@@ -794,22 +808,22 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(10, 26, 24, 0.8)', // Matching dark teal backdrop
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
   promotionModal: {
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#D9FDF8',
     width: '80%',
     padding: 24,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#333',
+    borderWidth: 2,
+    borderColor: '#3F8F88',
     alignItems: 'center',
   },
   modalTitle: {
-    color: '#FFF',
+    color: '#3F8F88',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 20,
@@ -821,7 +835,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   promotionButton: {
-    backgroundColor: '#333',
+    backgroundColor: '#3F8F88',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -832,20 +846,22 @@ const styles = StyleSheet.create({
     borderColor: '#3F8F88',
   },
   promotionButtonText: {
-    color: '#3F8F88',
+    color: '#D9FDF8',
     fontSize: 16,
     fontWeight: '600',
   },
   inputContainer: {
     width: '100%',
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     padding: 10,
     marginBottom: 20,
     minHeight: 80,
+    borderWidth: 1,
+    borderColor: '#3F8F88',
   },
   textInput: {
-    color: '#FFF',
+    color: '#3F8F88',
     fontSize: 14,
     textAlignVertical: 'top',
   },
@@ -862,10 +878,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   cancelButton: {
-    backgroundColor: '#444',
+    backgroundColor: '#3F8F88',
   },
   loadButton: {
-    backgroundColor: '#3F8F88',
+    backgroundColor: '#E3B23C',
   },
 });
 

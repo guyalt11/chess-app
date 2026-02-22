@@ -102,7 +102,7 @@ const ChessBoardWebView = forwardRef<ChessBoardWebViewRef, Props>(
           body { 
             margin: 0; 
             padding: 0; 
-            background-color: #121212; 
+            background-color: #D9FDF8; /* Light Cyan from palette */
             display: flex; 
             justify-content: center; 
             align-items: center; 
@@ -114,8 +114,9 @@ const ChessBoardWebView = forwardRef<ChessBoardWebViewRef, Props>(
             width: ${boardSize}px; 
             height: ${boardSize}px;
           }
-          .white-1e1d7 { background-color: #ebecd0; color: #779556; }
-          .black-3b82a { background-color: #779556; color: #ebecd0; }
+          /* Custom board colors */
+          .white-1e1d7 { background-color: #D9FDF8 !important; color: #3F8F88 !important; }
+          .black-3b82a { background-color: #3F8F88 !important; color: #D9FDF8 !important; }
           
           .highlight-move {
             box-shadow: inset 0 0 3px 3px rgba(255, 255, 0, 0.75);

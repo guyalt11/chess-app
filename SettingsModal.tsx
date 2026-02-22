@@ -149,7 +149,7 @@ export default function SettingsModal({ visible, currentElo, onSelectElo, onClos
 const styles = StyleSheet.create({
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: '#121212',
+        backgroundColor: '#D9FDF8',
         zIndex: 2000,
     },
     safeArea: {
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 14,
         borderBottomWidth: 1,
-        borderBottomColor: '#2a2a2a',
+        borderBottomColor: '#3F8F88',
     },
     headerLeft: {
         width: 36,
@@ -171,19 +171,19 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 22,
         fontWeight: '800',
-        color: '#FFF',
+        color: '#3F8F88',
         letterSpacing: 1,
     },
     closeButton: {
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: '#2a2a2a',
+        backgroundColor: '#3F8F88',
         justifyContent: 'center',
         alignItems: 'center',
     },
     closeButtonText: {
-        color: '#aaa',
+        color: '#D9FDF8',
         fontSize: 16,
         fontWeight: 'bold',
     },
@@ -197,19 +197,19 @@ const styles = StyleSheet.create({
     sectionLabel: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#FFF',
+        color: '#3F8F88',
         marginBottom: 4,
     },
     sectionSub: {
         fontSize: 13,
-        color: '#888',
+        color: '#1A433E',
         marginBottom: 18,
     },
     selectedBanner: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#1E1E1E',
+        backgroundColor: '#FFFFFF',
         borderRadius: 12,
         borderWidth: 2,
         padding: 16,
@@ -218,11 +218,11 @@ const styles = StyleSheet.create({
     selectedBannerLabel: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#FFF',
+        color: '#3F8F88',
     },
     selectedBannerElo: {
         fontSize: 13,
-        color: '#aaa',
+        color: '#666',
         marginTop: 2,
     },
     eloBadge: {
@@ -243,12 +243,12 @@ const styles = StyleSheet.create({
     },
     card: {
         width: '48%',
-        backgroundColor: '#1A1A1A',
+        backgroundColor: '#FFFFFF',
         borderRadius: 12,
         marginBottom: 12,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#2a2a2a',
+        borderColor: '#3F8F88',
         position: 'relative',
     },
     cardStripe: {
@@ -261,13 +261,13 @@ const styles = StyleSheet.create({
     cardElo: {
         fontSize: 22,
         fontWeight: '800',
-        color: '#FFF',
+        color: '#3F8F88',
         marginBottom: 2,
     },
     cardLabel: {
         fontSize: 13,
         fontWeight: '600',
-        color: '#CCC',
+        color: '#3F8F88',
         marginBottom: 4,
     },
     cardDesc: {
@@ -292,10 +292,10 @@ const styles = StyleSheet.create({
     },
     togglePill: {
         flexDirection: 'row',
-        backgroundColor: '#1E1E1E',
+        backgroundColor: '#FFFFFF',
         borderRadius: 30,
         borderWidth: 1,
-        borderColor: '#333',
+        borderColor: '#3F8F88',
         overflow: 'hidden',
     },
     toggleOption: {
