@@ -297,18 +297,21 @@ function App(): React.JSX.Element {
 
     setIsFenModalVisible(false);
     setFenInput('');
-
     triggerComputerIfItsTurn(newTurn, cleanFen);
   };
 
   const handleStepBack = () => {
+    // Already at the very start — nowhere to go further back
+    if (historyIndexRef.current === -1) return;
+
     // Set review mode synchronously BEFORE anything async,
     // so any in-flight bestmove is caught by the guard above.
     isReviewingRef.current = true;
     engine.send('stop'); // cancel any ongoing engine search
 
     setMoveHistory(prev => {
-      const currentIdx = historyIndexRef.current === -1 ? prev.length - 1 : historyIndexRef.current;
+      // Use the actual current index directly — never derive from -1 to prev.length-1 here
+      const currentIdx = historyIndexRef.current;
       const newIdx = Math.max(-1, currentIdx - 2);
       historyIndexRef.current = newIdx;
       // isReviewingRef stays true (we always go back into history)
@@ -504,45 +507,27 @@ function App(): React.JSX.Element {
 
         <View style={styles.controls}>
           <TouchableOpacity
-            style={styles.button}
+            style={[styles.actionIcon, { backgroundColor: '#E3B23C', shadowColor: '#E3B23C' }]}
             onPress={handleReset}
             activeOpacity={0.7}
           >
-            <Text style={styles.buttonText}>Reset</Text>
+            <Text style={styles.actionIconText}>↺</Text>
           </TouchableOpacity>
-          <View style={{ width: 20 }} />
+          <View style={{ width: 24 }} />
           <TouchableOpacity
-            style={[styles.button, styles.flipButton]}
+            style={[styles.actionIcon, { backgroundColor: '#3F8F88', shadowColor: '#3F8F88' }]}
             onPress={handleFlip}
             activeOpacity={0.7}
           >
-            <Text style={styles.buttonText}>Flip</Text>
+            <Text style={styles.actionIconText}>⇅</Text>
           </TouchableOpacity>
-          <View style={{ width: 10 }} />
+          <View style={{ width: 24 }} />
           <TouchableOpacity
-            style={[styles.button, styles.fenButton]}
+            style={styles.fenButton}
             onPress={() => setIsFenModalVisible(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.buttonText}>FEN</Text>
-          </TouchableOpacity>
-          <View style={{ width: 14 }} />
-          {/* Engine / DB toggle */}
-          <TouchableOpacity
-            style={styles.togglePill}
-            onPress={() => {
-              const next = !isEngineMode;
-              setIsEngineMode(next);
-              isEngineModeRef.current = next;
-            }}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.toggleOption, isEngineMode && styles.toggleOptionActive]}>
-              <Text style={[styles.toggleText, isEngineMode && styles.toggleTextActive]}>Engine</Text>
-            </View>
-            <View style={[styles.toggleOption, !isEngineMode && styles.toggleOptionActive]}>
-              <Text style={[styles.toggleText, !isEngineMode && styles.toggleTextActive]}>DB</Text>
-            </View>
+            <Text style={styles.fenButtonText}>Paste FEN</Text>
           </TouchableOpacity>
         </View>
 
@@ -616,6 +601,11 @@ function App(): React.JSX.Element {
           currentElo={botElo}
           onSelectElo={handleEloChange}
           onClose={() => setIsSettingsVisible(false)}
+          isEngineMode={isEngineMode}
+          onToggleEngineMode={(val) => {
+            setIsEngineMode(val);
+            isEngineModeRef.current = val;
+          }}
         />
       </SafeAreaView>
     </View>
@@ -689,7 +679,7 @@ const styles = StyleSheet.create({
   evalText: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#BB86FC',
+    color: '#D9FDF8',
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 4,
     borderRadius: 2,
@@ -732,8 +722,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   moveTextActive: {
-    color: '#BB86FC',
-    backgroundColor: 'rgba(187, 134, 252, 0.15)',
+    color: '#E3B23C',
+    backgroundColor: 'rgba(227, 178, 60, 0.15)',
   },
   noMovesText: {
     color: '#555',
@@ -747,7 +737,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   navButtonText: {
-    color: '#BB86FC',
+    color: '#3F8F88',
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -761,51 +751,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  button: {
-    backgroundColor: '#BB86FC',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+  actionIcon: {
+    width: 60,
+    height: 60,
     borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
     elevation: 8,
-    shadowColor: '#BB86FC',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 5,
-    minWidth: 100,
-    alignItems: 'center',
   },
-  flipButton: {
-    backgroundColor: '#03DAC6',
-    shadowColor: '#03DAC6',
+  actionIconText: {
+    fontSize: 28,
+    color: '#121212',
+    fontWeight: 'bold',
   },
   fenButton: {
-    backgroundColor: '#779556',
-    shadowColor: '#779556',
-  },
-  togglePill: {
-    flexDirection: 'row',
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#D9FDF8',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
     borderRadius: 30,
-    borderWidth: 1,
-    borderColor: '#333',
-    overflow: 'hidden',
+    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  toggleOption: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  toggleOptionActive: {
-    backgroundColor: '#BB86FC',
-    borderRadius: 30,
-  },
-  toggleText: {
-    color: '#888',
-    fontSize: 13,
+  fenButtonText: {
+    color: '#121212',
+    fontSize: 16,
     fontWeight: 'bold',
     letterSpacing: 0.5,
-  },
-  toggleTextActive: {
-    color: '#000',
   },
   buttonText: {
     color: '#000000',
@@ -851,10 +829,10 @@ const styles = StyleSheet.create({
     minWidth: 100,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#BB86FC',
+    borderColor: '#3F8F88',
   },
   promotionButtonText: {
-    color: '#BB86FC',
+    color: '#3F8F88',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -887,7 +865,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#444',
   },
   loadButton: {
-    backgroundColor: '#BB86FC',
+    backgroundColor: '#3F8F88',
   },
 });
 
