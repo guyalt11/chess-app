@@ -37,6 +37,8 @@ function App(): React.JSX.Element {
   const botEloRef = useRef<number>(1500);
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const isEvalOnlyRef = useRef<boolean>(false); // evaluate only, don't play bestmove
+  const [isEngineMode, setIsEngineMode] = useState(true);
+  const isEngineModeRef = useRef(true);
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -119,10 +121,65 @@ function App(): React.JSX.Element {
     if (isReviewingRef.current) return; // Don't play during history review
     if (currentTurn === computerColorRef.current) {
       setTimeout(() => {
-        const pos = currentFen === 'startpos' ? 'startpos' : `fen ${currentFen}`;
-        engine.send(`position ${pos}`);
-        engine.send('go depth 15');
+        if (isEngineModeRef.current) {
+          // Engine mode: let Stockfish decide
+          const pos = currentFen === 'startpos' ? 'startpos' : `fen ${currentFen}`;
+          engine.send(`position ${pos}`);
+          engine.send('go depth 15');
+        } else {
+          // DB mode: query Lichess opening explorer
+          playLichessDbMove(currentFen);
+        }
       }, 400);
+    }
+  };
+
+  // Fetch the most-played move from the Lichess opening explorer
+  const playLichessDbMove = async (fen: string) => {
+    try {
+      const fenForApi =
+        fen === 'startpos'
+          ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+          : fen;
+      const url = `https://explorer.lichess.ovh/lichess?fen=${encodeURIComponent(fenForApi)}&moves=5&topGames=0&recentGames=0`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (!data.moves || data.moves.length === 0) {
+        Alert.alert(
+          'No games found',
+          'No database games are available for this position.',
+          [{ text: 'OK' }],
+        );
+        return;
+      }
+
+      // Pick the most-played move (already sorted by popularity)
+      const bestMove: string = data.moves[0].uci; // e.g. "e2e4"
+      const from = bestMove.substring(0, 2);
+      const to = bestMove.substring(2, 4);
+      const promotion = bestMove.length === 5 ? bestMove.substring(4, 5) : 'q';
+
+      const script = `
+        if (window.board && window.game) {
+          var move = window.game.move({
+            from: '${from}',
+            to: '${to}',
+            promotion: '${promotion}'
+          });
+          if (move) {
+            window.board.position(window.game.fen());
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'MOVE',
+              move: { from: '${from}', to: '${to}', san: move.san, fen: window.game.fen() }
+            }));
+            checkStatus();
+          }
+        }
+      `;
+      boardRef.current?.injectJavaScript?.(script);
+    } catch (error) {
+      Alert.alert('Connection Error', 'Could not reach the Lichess database.', [{ text: 'OK' }]);
     }
   };
 
@@ -469,6 +526,24 @@ function App(): React.JSX.Element {
           >
             <Text style={styles.buttonText}>FEN</Text>
           </TouchableOpacity>
+          <View style={{ width: 14 }} />
+          {/* Engine / DB toggle */}
+          <TouchableOpacity
+            style={styles.togglePill}
+            onPress={() => {
+              const next = !isEngineMode;
+              setIsEngineMode(next);
+              isEngineModeRef.current = next;
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.toggleOption, isEngineMode && styles.toggleOptionActive]}>
+              <Text style={[styles.toggleText, isEngineMode && styles.toggleTextActive]}>Engine</Text>
+            </View>
+            <View style={[styles.toggleOption, !isEngineMode && styles.toggleOptionActive]}>
+              <Text style={[styles.toggleText, !isEngineMode && styles.toggleTextActive]}>DB</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Promotion Selection Modal */}
@@ -706,6 +781,31 @@ const styles = StyleSheet.create({
   fenButton: {
     backgroundColor: '#779556',
     shadowColor: '#779556',
+  },
+  togglePill: {
+    flexDirection: 'row',
+    backgroundColor: '#1E1E1E',
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: '#333',
+    overflow: 'hidden',
+  },
+  toggleOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  toggleOptionActive: {
+    backgroundColor: '#BB86FC',
+    borderRadius: 30,
+  },
+  toggleText: {
+    color: '#888',
+    fontSize: 13,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  toggleTextActive: {
+    color: '#000',
   },
   buttonText: {
     color: '#000000',
