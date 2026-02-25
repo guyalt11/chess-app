@@ -80,6 +80,7 @@ function App(): React.JSX.Element {
   const [isPgnModalVisible, setIsPgnModalVisible] = useState(false);
   const [pgnInput, setPgnInput] = useState('');
   const [pgnTree, setPgnTree] = useState<PgnTree | null>(null);
+  const pgnTreeRef = useRef<PgnTree | null>(null);
   const [pgnMode, setPgnMode] = useState(false);
   const [moveHistory, setMoveHistory] = useState<{ san: string; fen: string }[]>([]);
   const historyIndexRef = useRef<number>(-1); // -1 means at latest position
@@ -92,6 +93,10 @@ function App(): React.JSX.Element {
   const [isEngineMode, setIsEngineMode] = useState(false);
   const isEngineModeRef = useRef(false);
   const [computerMode, setComputerMode] = useState<'Database' | 'PGN' | 'Engine'>('Database');
+  const [showPossibleMoves, setShowPossibleMoves] = useState(false);
+  const [possibleMoves, setPossibleMoves] = useState<string[]>([]);
+  const [loadedType, setLoadedType] = useState<'none' | 'pgn' | 'fen'>('none');
+  const loadedTypeRef = useRef<'none' | 'pgn' | 'fen'>('none');
   const pgnExhaustionIndexRef = useRef<number | null>(null); // Track when PGN was exhausted
   const lichessExhaustionIndexRef = useRef<number | null>(null); // Track when Lichess was exhausted
 
@@ -177,18 +182,18 @@ function App(): React.JSX.Element {
     if (currentTurn === computerColorRef.current) {
       setTimeout(() => {
         // 1) Try PGN-based move if PGN mode is on and we have a tree
-        if (pgnMode && pgnTree) {
+        if (loadedTypeRef.current === 'pgn' && pgnTreeRef.current) {
           console.log('PGN mode active, checking for moves in tree...');
           console.log('Current FEN before normalization:', currentFen);
           const fenParts = currentFen.split(' ');
           console.log('FEN parts:', fenParts);
           const normFen =
             currentFen === 'startpos'
-              ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w'
+              ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq'
               : fenParts.slice(0, 3).join(' ');
 
           console.log(`Looking for moves at position: ${normFen}`);
-          const movesFromPgn = pgnTree[normFen];
+          const movesFromPgn = pgnTreeRef.current[normFen];
           
           if (movesFromPgn && movesFromPgn.length > 0) {
             const san = movesFromPgn[Math.floor(Math.random() * movesFromPgn.length)];
@@ -368,8 +373,6 @@ function App(): React.JSX.Element {
     setEvaluation(0);
     setTurn('w');
     turnRef.current = 'w';
-    currentFenRef.current = 'startpos';
-    startFenRef.current = 'startpos';
     setMoveHistory([]);
     historyIndexRef.current = -1;
     isReviewingRef.current = false;
@@ -380,16 +383,42 @@ function App(): React.JSX.Element {
     pgnExhaustionIndexRef.current = null;
     lichessExhaustionIndexRef.current = null;
     
-    // Reset computer mode to Database when no PGN is loaded
-    setComputerMode(pgnTree ? 'PGN' : 'Database');
-    
-    boardRef.current?.reset();
-    engine.send('ucinewgame');
-    engine.send('isready');
-    engine.send('position startpos');
-
-    // Check if computer should move (e.g. if it is currently White)
-    triggerComputerIfItsTurn('w', 'startpos');
+    // Reset to appropriate position based on what's loaded
+    if (loadedType === 'pgn' && pgnTree) {
+      // Reset to starting position with PGN
+      currentFenRef.current = 'startpos';
+      startFenRef.current = 'startpos';
+      setComputerMode('PGN');
+      setPgnMode(true);
+      boardRef.current?.reset();
+      engine.send('ucinewgame');
+      engine.send('isready');
+      engine.send('position startpos');
+      triggerComputerIfItsTurn('w', 'startpos');
+    } else if (loadedType === 'fen') {
+      // Reset to loaded FEN position
+      const fenPosition = startFenRef.current;
+      currentFenRef.current = fenPosition;
+      const turn = (fenPosition.split(' ')[1] || 'w') as 'w' | 'b';
+      setTurn(turn);
+      turnRef.current = turn;
+      setComputerMode('Database');
+      boardRef.current?.setFen(fenPosition);
+      engine.send('ucinewgame');
+      engine.send(`position fen ${fenPosition}`);
+      triggerComputerIfItsTurn(turn, fenPosition);
+    } else {
+      // Normal reset to starting position
+      currentFenRef.current = 'startpos';
+      startFenRef.current = 'startpos';
+      setComputerMode('Database');
+      setPgnMode(false);
+      boardRef.current?.reset();
+      engine.send('ucinewgame');
+      engine.send('isready');
+      engine.send('position startpos');
+      triggerComputerIfItsTurn('w', 'startpos');
+    }
   };
 
   const handleFlip = () => {
@@ -449,8 +478,11 @@ function App(): React.JSX.Element {
       });
 
       setPgnTree(tree);
+      pgnTreeRef.current = tree;
       setPgnMode(true);
       setComputerMode('PGN');
+      setLoadedType('pgn');
+      loadedTypeRef.current = 'pgn';
       setIsEngineMode(false); // Ensure we're not in engine mode when loading PGN
       isEngineModeRef.current = false;
       
@@ -458,8 +490,38 @@ function App(): React.JSX.Element {
       pgnExhaustionIndexRef.current = null;
       lichessExhaustionIndexRef.current = null;
       
-      // Reset the board when loading PGN
-      handleReset();
+      // Reset the board to starting position manually (don't call handleReset to avoid mode conflicts)
+      currentFenRef.current = 'startpos';
+      startFenRef.current = 'startpos';
+      setTurn('w');
+      turnRef.current = 'w';
+      setEvaluation(0);
+      setMoveHistory([]);
+      historyIndexRef.current = -1;
+      isReviewingRef.current = false;
+      
+      boardRef.current?.reset();
+      engine.send('ucinewgame');
+      engine.send('isready');
+      engine.send('position startpos');
+      
+      // Check if computer should move immediately (e.g., if computer is White)
+      // Use refs directly to avoid state timing issues
+      console.log('Checking if computer should move after PGN load...');
+      console.log('Computer color:', computerColorRef.current);
+      console.log('Current turn:', 'w');
+      console.log('Loaded type state:', loadedType);
+      console.log('Loaded type ref:', loadedTypeRef.current);
+      console.log('PGN tree state:', !!pgnTree);
+      console.log('PGN tree ref:', !!pgnTreeRef.current);
+      
+      // Debug: Check if starting position has moves in PGN tree
+      const startFen = 'rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQkq';
+      console.log('Starting position FEN:', startFen);
+      console.log('Moves available for starting position:', pgnTreeRef.current?.[startFen]);
+      
+      // Call triggerComputerIfItsTurn immediately - refs should be available
+      triggerComputerIfItsTurn('w', 'startpos');
       
       Alert.alert('Success', 'PGN loaded. Board reset. Computer will play from this PGN.');
       setIsPgnModalVisible(false);
@@ -487,6 +549,8 @@ function App(): React.JSX.Element {
     isReviewingRef.current = false;
     setIsEngineMode(false); // Reset mode on new position
     isEngineModeRef.current = false;
+    setLoadedType('fen');
+    setComputerMode('Database'); // FEN positions use Database mode by default
 
     boardRef.current?.setFen(cleanFen);
     engine.send('ucinewgame');
@@ -511,6 +575,7 @@ function App(): React.JSX.Element {
       const currentIdx = historyIndexRef.current;
       const newIdx = Math.max(-1, currentIdx - 2);
       historyIndexRef.current = newIdx;
+      setShowPossibleMoves(false); // Hide moves modal when navigating back
       // isReviewingRef stays true (we always go back into history)
 
       if (newIdx >= 0) {
@@ -521,14 +586,19 @@ function App(): React.JSX.Element {
         turnRef.current = t;
         
         // Check if we should restore PGN or Lichess mode
-        if (pgnExhaustionIndexRef.current !== null && newIdx < pgnExhaustionIndexRef.current && pgnTree) {
+        if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && newIdx < pgnExhaustionIndexRef.current) {
           console.log('Restoring PGN mode - went back to index:', newIdx, 'PGN exhausted at:', pgnExhaustionIndexRef.current);
           setPgnMode(true);
           setComputerMode('PGN');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
-        } else if (lichessExhaustionIndexRef.current !== null && newIdx < lichessExhaustionIndexRef.current && !pgnTree) {
-          console.log('Restoring Lichess mode - went back to index:', newIdx, 'Lichess exhausted at:', lichessExhaustionIndexRef.current);
+        } else if (loadedType === 'fen' && lichessExhaustionIndexRef.current !== null && newIdx < lichessExhaustionIndexRef.current) {
+          console.log('Restoring Database mode for FEN - went back to index:', newIdx, 'Lichess exhausted at:', lichessExhaustionIndexRef.current);
+          setComputerMode('Database');
+          setIsEngineMode(false);
+          isEngineModeRef.current = false;
+        } else if (loadedType === 'none' && lichessExhaustionIndexRef.current !== null && newIdx < lichessExhaustionIndexRef.current) {
+          console.log('Restoring Database mode - went back to index:', newIdx, 'Lichess exhausted at:', lichessExhaustionIndexRef.current);
           setComputerMode('Database');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
@@ -552,22 +622,28 @@ function App(): React.JSX.Element {
         setTurn(startTurn);
         turnRef.current = startTurn;
         
-        // Always restore PGN/Lichess mode when going back to start
-        if (pgnTree) {
+        // Always restore appropriate mode when going back to start
+        if (loadedType === 'pgn' && pgnTree) {
           console.log('Restoring PGN mode - went back to starting position');
           setPgnMode(true);
           setComputerMode('PGN');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
           pgnExhaustionIndexRef.current = null; // Reset exhaustion tracking
+        } else if (loadedType === 'fen') {
+          console.log('Restoring Database mode for FEN - went back to starting position');
+          setComputerMode('Database');
+          setIsEngineMode(false);
+          isEngineModeRef.current = false;
+          lichessExhaustionIndexRef.current = null; // Reset exhaustion tracking
         } else if (lichessExhaustionIndexRef.current !== null) {
-          console.log('Restoring Lichess mode - went back to starting position');
+          console.log('Restoring Database mode - went back to starting position');
           setComputerMode('Database');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
           lichessExhaustionIndexRef.current = null; // Reset exhaustion tracking
         } else {
-          // Default to Database mode when no PGN is loaded
+          // Default to Database mode when nothing is loaded
           setComputerMode('Database');
         }
         
@@ -580,6 +656,7 @@ function App(): React.JSX.Element {
   const handleStepForward = () => {
     // Set review mode synchronously BEFORE anything async
     isReviewingRef.current = true;
+    setShowPossibleMoves(false); // Hide moves modal when navigating forward
     engine.send('stop'); // cancel any ongoing engine search
 
     setMoveHistory(prev => {
@@ -609,20 +686,124 @@ function App(): React.JSX.Element {
           evalPositionOnly(targetFen, t);
         }
       }
-      return prev;
+    setIsSettingsVisible(false);
     });
   };
 
   const handleEloChange = (elo: number) => {
-    setBotElo(elo);
     botEloRef.current = elo;
     // Apply new ELO to the engine immediately
     engine.send('setoption name UCI_LimitStrength value true');
     engine.send(`setoption name UCI_Elo value ${elo}`);
     engine.send('isready');
-    // Reset the game so the new ELO takes effect cleanly
-    handleReset();
+    // Reset game so new ELO takes effect cleanly, but preserve loaded content
+    if (loadedType === 'pgn') {
+      // For PGN, reset to starting position with PGN mode preserved
+      currentFenRef.current = 'startpos';
+      startFenRef.current = 'startpos';
+      setTurn('w');
+      turnRef.current = 'w';
+      setEvaluation(0);
+      setMoveHistory([]);
+      historyIndexRef.current = -1;
+      isReviewingRef.current = false;
+      
+      boardRef.current?.reset();
+      engine.send('ucinewgame');
+      engine.send('isready');
+      engine.send('position startpos');
+      
+      setTimeout(() => {
+        triggerComputerIfItsTurn('w', 'startpos');
+      }, 500);
+    } else {
+      // For FEN or none, use normal reset
+      handleReset();
+    }
     setIsSettingsVisible(false);
+  };
+
+  const handleClearLoaded = () => {
+    // Clear all loaded content
+    setPgnTree(null);
+    setPgnMode(false);
+    setLoadedType('none');
+    setComputerMode('Database');
+    setIsEngineMode(false);
+    isEngineModeRef.current = false;
+    
+    // Reset to normal starting position
+    currentFenRef.current = 'startpos';
+    startFenRef.current = 'startpos';
+    setTurn('w');
+    turnRef.current = 'w';
+    setEvaluation(0);
+    setMoveHistory([]);
+    historyIndexRef.current = -1;
+    isReviewingRef.current = false;
+    
+    // Clear exhaustion tracking
+    pgnExhaustionIndexRef.current = null;
+    lichessExhaustionIndexRef.current = null;
+    
+    // Reset board
+    boardRef.current?.reset();
+    engine.send('ucinewgame');
+    engine.send('isready');
+    engine.send('position startpos');
+    
+    // Check if computer should move
+    triggerComputerIfItsTurn('w', 'startpos');
+  };
+
+  const handleShowPossibleMoves = async () => {
+    const currentFen = currentFenRef.current;
+    console.log('handleShowPossibleMoves called with FEN:', currentFen);
+    console.log('loadedType:', loadedType);
+    console.log('computerMode:', computerMode);
+    console.log('pgnTree exists:', !!pgnTree);
+    
+    if (loadedType === 'pgn' && pgnTree) {
+      // Get PGN moves for current position
+      const normFen = currentFen === 'startpos'
+        ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq'
+        : currentFen.split(' ').slice(0, 3).join(' ');
+      
+      const moves = pgnTree[normFen] || [];
+      setPossibleMoves(moves);
+      setShowPossibleMoves(true);
+      console.log('PGN moves available:', moves);
+    } else if (loadedType === 'fen' || loadedType === 'none') {
+      // Get Lichess moves for current position
+      try {
+        const fenForApi = currentFen === 'startpos'
+          ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+          : currentFen;
+        const url = `https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fenForApi)}&moves=15&topGames=0&recentGames=0`;
+        const response = await fetch(url);
+        
+        if (response.status === 429) {
+          setPossibleMoves(['Rate limit exceeded']);
+          setShowPossibleMoves(true);
+          return;
+        }
+        
+        const data = await response.json();
+        const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > 50);
+        const moveSanList = validMoves.map((m: any) => `${m.uci} (${m.white + m.draws + m.black} games)`);
+        setPossibleMoves(moveSanList);
+        setShowPossibleMoves(true);
+        console.log('Lichess moves available:', moveSanList);
+      } catch (error) {
+        setPossibleMoves(['Error fetching moves']);
+        setShowPossibleMoves(true);
+        console.log('Error fetching Lichess moves:', error);
+      }
+    } else {
+      // Engine mode - show message
+      setPossibleMoves(['Engine mode - no opening book']);
+      setShowPossibleMoves(true);
+    }
   };
 
   return (
@@ -704,6 +885,26 @@ function App(): React.JSX.Element {
                             const t = (moveHistory[i * 2].fen.split(' ')[1] || 'w') as 'w' | 'b';
                             setTurn(t);
                             turnRef.current = t;
+                            setShowPossibleMoves(false); // Hide moves modal when navigating
+                            
+                            // Restore appropriate mode based on loaded type and exhaustion
+                            if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && i * 2 < pgnExhaustionIndexRef.current) {
+                              console.log('Restoring PGN mode from move click');
+                              setPgnMode(true);
+                              setComputerMode('PGN');
+                              setIsEngineMode(false);
+                              isEngineModeRef.current = false;
+                            } else if (loadedType === 'fen' && lichessExhaustionIndexRef.current !== null && i * 2 < lichessExhaustionIndexRef.current) {
+                              console.log('Restoring Database mode for FEN from move click');
+                              setComputerMode('Database');
+                              setIsEngineMode(false);
+                              isEngineModeRef.current = false;
+                            } else if (loadedType === 'none' && lichessExhaustionIndexRef.current !== null && i * 2 < lichessExhaustionIndexRef.current) {
+                              console.log('Restoring Database mode from move click');
+                              setComputerMode('Database');
+                              setIsEngineMode(false);
+                              isEngineModeRef.current = false;
+                            }
                           }}
                         >
                           <Text style={[
@@ -723,6 +924,26 @@ function App(): React.JSX.Element {
                             const t = (moveHistory[i * 2 + 1].fen.split(' ')[1] || 'w') as 'w' | 'b';
                             setTurn(t);
                             turnRef.current = t;
+                            setShowPossibleMoves(false); // Hide moves modal when navigating
+                            
+                            // Restore appropriate mode based on loaded type and exhaustion
+                            if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && (i * 2 + 1) < pgnExhaustionIndexRef.current) {
+                              console.log('Restoring PGN mode from black move click');
+                              setPgnMode(true);
+                              setComputerMode('PGN');
+                              setIsEngineMode(false);
+                              isEngineModeRef.current = false;
+                            } else if (loadedType === 'fen' && lichessExhaustionIndexRef.current !== null && (i * 2 + 1) < lichessExhaustionIndexRef.current) {
+                              console.log('Restoring Database mode for FEN from black move click');
+                              setComputerMode('Database');
+                              setIsEngineMode(false);
+                              isEngineModeRef.current = false;
+                            } else if (loadedType === 'none' && lichessExhaustionIndexRef.current !== null && (i * 2 + 1) < lichessExhaustionIndexRef.current) {
+                              console.log('Restoring Database mode from black move click');
+                              setComputerMode('Database');
+                              setIsEngineMode(false);
+                              isEngineModeRef.current = false;
+                            }
                           }}
                         >
                           <Text style={[
@@ -762,19 +983,38 @@ function App(): React.JSX.Element {
           </TouchableOpacity>
           <View style={{ width: 16 }} />
           <TouchableOpacity
-            style={styles.fenButtonSmall}
-            onPress={() => setIsFenModalVisible(true)}
+            style={[
+              styles.fenButtonSmall, 
+              loadedType === 'fen' ? { backgroundColor: '#E74C3C', shadowColor: '#E74C3C' } : {}
+            ]}
+            onPress={loadedType === 'fen' ? handleClearLoaded : () => setIsFenModalVisible(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.fenButtonTextSmall}>FEN</Text>
+            <Text style={styles.fenButtonTextSmall}>
+              {loadedType === 'fen' ? '✕' : 'FEN'}
+            </Text>
           </TouchableOpacity>
           <View style={{ width: 8 }} />
           <TouchableOpacity
-            style={styles.fenButtonSmall}
-            onPress={() => setIsPgnModalVisible(true)}
+            style={[
+              styles.fenButtonSmall,
+              loadedType === 'pgn' ? { backgroundColor: '#E74C3C', shadowColor: '#E74C3C' } : {}
+            ]}
+            onPress={loadedType === 'pgn' ? handleClearLoaded : () => setIsPgnModalVisible(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.fenButtonTextSmall}>PGN</Text>
+            <Text style={styles.fenButtonTextSmall}>
+              {loadedType === 'pgn' ? '✕' : 'PGN'}
+            </Text>
+          </TouchableOpacity>
+          <View style={{ width: 8 }} />
+          <TouchableOpacity
+            style={[styles.fenButtonSmall, { backgroundColor: '#9C27B0', shadowColor: '#9C27B0' }]}
+            onPressIn={handleShowPossibleMoves}
+            onPressOut={() => setShowPossibleMoves(false)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.fenButtonTextSmall}>Moves</Text>
           </TouchableOpacity>
         </View>
 
@@ -876,6 +1116,32 @@ function App(): React.JSX.Element {
                   onPress={handleLoadPgnFromText}
                 >
                   <Text style={styles.buttonText}>Load</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Possible Moves Modal */}
+        {showPossibleMoves && (
+          <View style={styles.modalOverlay}>
+            <View style={styles.possibleMovesModal}>
+              <Text style={styles.modalTitle}>Possible Moves</Text>
+              <View style={styles.inputContainer}>
+                <ScrollView style={{ maxHeight: 300 }}>
+                  {possibleMoves.map((move, index) => (
+                    <Text key={index} style={styles.possibleMoveText}>
+                      {move}
+                    </Text>
+                  ))}
+                </ScrollView>
+              </View>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.loadButton]}
+                  onPress={() => setShowPossibleMoves(false)}
+                >
+                  <Text style={styles.buttonText}>Close</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1199,6 +1465,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  possibleMovesModal: {
+    backgroundColor: '#D9FDF8',
+    width: '85%',
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#3F8F88',
+    alignItems: 'center',
+  },
+  possibleMoveText: {
+    color: '#3F8F88',
+    fontSize: 14,
+    fontWeight: '500',
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E3B23C',
+    marginBottom: 2,
   },
 });
 
