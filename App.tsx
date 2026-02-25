@@ -91,6 +91,7 @@ function App(): React.JSX.Element {
   const isEvalOnlyRef = useRef<boolean>(false); // evaluate only, don't play bestmove
   const [isEngineMode, setIsEngineMode] = useState(false);
   const isEngineModeRef = useRef(false);
+  const [computerMode, setComputerMode] = useState<'Database' | 'PGN' | 'Engine'>('Database');
   const pgnExhaustionIndexRef = useRef<number | null>(null); // Track when PGN was exhausted
   const lichessExhaustionIndexRef = useRef<number | null>(null); // Track when Lichess was exhausted
 
@@ -215,7 +216,7 @@ function App(): React.JSX.Element {
             // Track the position where PGN was exhausted
             pgnExhaustionIndexRef.current = historyIndexRef.current;
             console.log('PGN exhausted at history index:', pgnExhaustionIndexRef.current);
-            Alert.alert('PGN Exhausted', 'No more moves available in PGN. Switching to Stockfish engine.', [{ text: 'OK' }]);
+            setComputerMode('Engine');
             setPgnMode(false);
             setIsEngineMode(true);
             isEngineModeRef.current = true;
@@ -249,7 +250,7 @@ function App(): React.JSX.Element {
       // Check for rate limiting
       if (response.status === 429) {
         console.log('Lichess API rate limit exceeded.');
-        Alert.alert('Rate Limit Exceeded', 'Lichess API requests too frequent. Switching to Stockfish engine.', [{ text: 'OK' }]);
+        setComputerMode('Engine');
         setIsEngineMode(true);
         isEngineModeRef.current = true;
         const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
@@ -267,7 +268,7 @@ function App(): React.JSX.Element {
         // Track the position where Lichess was exhausted
         lichessExhaustionIndexRef.current = historyIndexRef.current;
         console.log('Lichess exhausted at history index:', lichessExhaustionIndexRef.current);
-        Alert.alert('Database Exhausted', 'No common moves found. Switching to Stockfish.', [{ text: 'OK' }]);
+        setComputerMode('Engine');
         setIsEngineMode(true);
         isEngineModeRef.current = true;
         // Fallback to engine
@@ -308,9 +309,11 @@ function App(): React.JSX.Element {
       console.log('DB Error:', error);
       // Check if it's a rate limit error
       if (error instanceof Error && error.message.includes('429')) {
-        Alert.alert('Rate Limit Exceeded', 'Lichess API requests too frequent. Switching to Stockfish engine.', [{ text: 'OK' }]);
+        console.log('Rate limit error in catch block');
+        setComputerMode('Engine');
       } else {
-        Alert.alert('Connection Error', 'Could not reach the Lichess database. Switching to Stockfish.', [{ text: 'OK' }]);
+        console.log('Connection error in catch block');
+        setComputerMode('Engine');
       }
       setIsEngineMode(true);
       isEngineModeRef.current = true;
@@ -376,6 +379,9 @@ function App(): React.JSX.Element {
     // Clear exhaustion tracking on reset
     pgnExhaustionIndexRef.current = null;
     lichessExhaustionIndexRef.current = null;
+    
+    // Reset computer mode to Database when no PGN is loaded
+    setComputerMode(pgnTree ? 'PGN' : 'Database');
     
     boardRef.current?.reset();
     engine.send('ucinewgame');
@@ -444,6 +450,7 @@ function App(): React.JSX.Element {
 
       setPgnTree(tree);
       setPgnMode(true);
+      setComputerMode('PGN');
       setIsEngineMode(false); // Ensure we're not in engine mode when loading PGN
       isEngineModeRef.current = false;
       
@@ -517,10 +524,12 @@ function App(): React.JSX.Element {
         if (pgnExhaustionIndexRef.current !== null && newIdx < pgnExhaustionIndexRef.current && pgnTree) {
           console.log('Restoring PGN mode - went back to index:', newIdx, 'PGN exhausted at:', pgnExhaustionIndexRef.current);
           setPgnMode(true);
+          setComputerMode('PGN');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
         } else if (lichessExhaustionIndexRef.current !== null && newIdx < lichessExhaustionIndexRef.current && !pgnTree) {
           console.log('Restoring Lichess mode - went back to index:', newIdx, 'Lichess exhausted at:', lichessExhaustionIndexRef.current);
+          setComputerMode('Database');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
         }
@@ -547,14 +556,19 @@ function App(): React.JSX.Element {
         if (pgnTree) {
           console.log('Restoring PGN mode - went back to starting position');
           setPgnMode(true);
+          setComputerMode('PGN');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
           pgnExhaustionIndexRef.current = null; // Reset exhaustion tracking
         } else if (lichessExhaustionIndexRef.current !== null) {
           console.log('Restoring Lichess mode - went back to starting position');
+          setComputerMode('Database');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
           lichessExhaustionIndexRef.current = null; // Reset exhaustion tracking
+        } else {
+          // Default to Database mode when no PGN is loaded
+          setComputerMode('Database');
         }
         
         evalPositionOnly(startFen === 'startpos' ? 'startpos' : startFen, startTurn);
@@ -627,6 +641,13 @@ function App(): React.JSX.Element {
         </View>
 
         <View style={styles.contentContainer}>
+          {/* Computer Mode Indicator */}
+          <View style={styles.modeIndicatorContainer}>
+            <Text style={styles.modeIndicatorText}>
+              Computer: {computerMode}
+            </Text>
+          </View>
+          
           <View style={styles.boardContainer}>
             <ChessBoardWebView
               ref={boardRef}
@@ -731,7 +752,7 @@ function App(): React.JSX.Element {
           >
             <Text style={styles.actionIconText}>↺</Text>
           </TouchableOpacity>
-          <View style={{ width: 24 }} />
+          <View style={{ width: 16 }} />
           <TouchableOpacity
             style={[styles.actionIcon, { backgroundColor: '#3F8F88', shadowColor: '#3F8F88' }]}
             onPress={handleFlip}
@@ -739,21 +760,21 @@ function App(): React.JSX.Element {
           >
             <Text style={styles.actionIconText}>⇅</Text>
           </TouchableOpacity>
-          <View style={{ width: 24 }} />
+          <View style={{ width: 16 }} />
           <TouchableOpacity
-            style={styles.fenButton}
+            style={styles.fenButtonSmall}
             onPress={() => setIsFenModalVisible(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.fenButtonText}>Paste FEN</Text>
+            <Text style={styles.fenButtonTextSmall}>FEN</Text>
           </TouchableOpacity>
-          <View style={{ width: 12 }} />
+          <View style={{ width: 8 }} />
           <TouchableOpacity
-            style={styles.fenButton}
+            style={styles.fenButtonSmall}
             onPress={() => setIsPgnModalVisible(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.fenButtonText}>Paste PGN</Text>
+            <Text style={styles.fenButtonTextSmall}>PGN</Text>
           </TouchableOpacity>
         </View>
 
@@ -1047,11 +1068,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  fenButtonSmall: {
+    backgroundColor: '#3F8F88',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 60,
+  },
   fenButtonText: {
     color: '#D9FDF8',
     fontSize: 16,
     fontWeight: 'bold',
     letterSpacing: 0.5,
+  },
+  fenButtonTextSmall: {
+    color: '#D9FDF8',
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 0.3,
   },
   buttonText: {
     color: '#121212',
@@ -1143,6 +1183,22 @@ const styles = StyleSheet.create({
   },
   loadButton: {
     backgroundColor: '#E3B23C',
+  },
+  modeIndicatorContainer: {
+    backgroundColor: '#3F8F88',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E3B23C',
+  },
+  modeIndicatorText: {
+    color: '#D9FDF8',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
