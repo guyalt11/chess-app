@@ -91,6 +91,8 @@ function App(): React.JSX.Element {
   const isEvalOnlyRef = useRef<boolean>(false); // evaluate only, don't play bestmove
   const [isEngineMode, setIsEngineMode] = useState(false);
   const isEngineModeRef = useRef(false);
+  const pgnExhaustionIndexRef = useRef<number | null>(null); // Track when PGN was exhausted
+  const lichessExhaustionIndexRef = useRef<number | null>(null); // Track when Lichess was exhausted
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -210,6 +212,9 @@ function App(): React.JSX.Element {
           } else {
             console.log('No PGN moves available for this position, switching to Stockfish.');
             console.log('Current position FEN:', normFen);
+            // Track the position where PGN was exhausted
+            pgnExhaustionIndexRef.current = historyIndexRef.current;
+            console.log('PGN exhausted at history index:', pgnExhaustionIndexRef.current);
             Alert.alert('PGN Exhausted', 'No more moves available in PGN. Switching to Stockfish engine.', [{ text: 'OK' }]);
             setPgnMode(false);
             setIsEngineMode(true);
@@ -240,12 +245,28 @@ function App(): React.JSX.Element {
           : fen;
       const url = `https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fenForApi)}&moves=15&topGames=0&recentGames=0`;
       const response = await fetch(url);
+      
+      // Check for rate limiting
+      if (response.status === 429) {
+        console.log('Lichess API rate limit exceeded.');
+        Alert.alert('Rate Limit Exceeded', 'Lichess API requests too frequent. Switching to Stockfish engine.', [{ text: 'OK' }]);
+        setIsEngineMode(true);
+        isEngineModeRef.current = true;
+        const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
+        engine.send(`position ${pos}`);
+        engine.send('go depth 15');
+        return;
+      }
+      
       const data = await response.json();
 
       const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > 50);
 
       if (validMoves.length === 0) {
         console.log('No DB moves with > 50 games found. Switching to Engine.');
+        // Track the position where Lichess was exhausted
+        lichessExhaustionIndexRef.current = historyIndexRef.current;
+        console.log('Lichess exhausted at history index:', lichessExhaustionIndexRef.current);
         Alert.alert('Database Exhausted', 'No common moves found. Switching to Stockfish.', [{ text: 'OK' }]);
         setIsEngineMode(true);
         isEngineModeRef.current = true;
@@ -285,7 +306,12 @@ function App(): React.JSX.Element {
       boardRef.current?.injectJavaScript?.(script);
     } catch (error) {
       console.log('DB Error:', error);
-      Alert.alert('Connection Error', 'Could not reach the Lichess database. Switching to Stockfish.', [{ text: 'OK' }]);
+      // Check if it's a rate limit error
+      if (error instanceof Error && error.message.includes('429')) {
+        Alert.alert('Rate Limit Exceeded', 'Lichess API requests too frequent. Switching to Stockfish engine.', [{ text: 'OK' }]);
+      } else {
+        Alert.alert('Connection Error', 'Could not reach the Lichess database. Switching to Stockfish.', [{ text: 'OK' }]);
+      }
       setIsEngineMode(true);
       isEngineModeRef.current = true;
       const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
@@ -346,6 +372,11 @@ function App(): React.JSX.Element {
     isReviewingRef.current = false;
     setIsEngineMode(false); // Reset to DB mode on new game
     isEngineModeRef.current = false;
+    
+    // Clear exhaustion tracking on reset
+    pgnExhaustionIndexRef.current = null;
+    lichessExhaustionIndexRef.current = null;
+    
     boardRef.current?.reset();
     engine.send('ucinewgame');
     engine.send('isready');
@@ -416,6 +447,10 @@ function App(): React.JSX.Element {
       setIsEngineMode(false); // Ensure we're not in engine mode when loading PGN
       isEngineModeRef.current = false;
       
+      // Reset exhaustion tracking when loading new PGN
+      pgnExhaustionIndexRef.current = null;
+      lichessExhaustionIndexRef.current = null;
+      
       // Reset the board when loading PGN
       handleReset();
       
@@ -477,6 +512,19 @@ function App(): React.JSX.Element {
         boardRef.current?.setFen(targetFen);
         setTurn(t);
         turnRef.current = t;
+        
+        // Check if we should restore PGN or Lichess mode
+        if (pgnExhaustionIndexRef.current !== null && newIdx < pgnExhaustionIndexRef.current && pgnTree) {
+          console.log('Restoring PGN mode - went back to index:', newIdx, 'PGN exhausted at:', pgnExhaustionIndexRef.current);
+          setPgnMode(true);
+          setIsEngineMode(false);
+          isEngineModeRef.current = false;
+        } else if (lichessExhaustionIndexRef.current !== null && newIdx < lichessExhaustionIndexRef.current && !pgnTree) {
+          console.log('Restoring Lichess mode - went back to index:', newIdx, 'Lichess exhausted at:', lichessExhaustionIndexRef.current);
+          setIsEngineMode(false);
+          isEngineModeRef.current = false;
+        }
+        
         evalPositionOnly(targetFen, t);
       } else {
         // Back to the game's starting position (could be a loaded FEN, not necessarily standard start)
@@ -494,6 +542,21 @@ function App(): React.JSX.Element {
         const startTurn = startFen === 'startpos' ? 'w' : (startFen.split(' ')[1] || 'w') as 'w' | 'b';
         setTurn(startTurn);
         turnRef.current = startTurn;
+        
+        // Always restore PGN/Lichess mode when going back to start
+        if (pgnTree) {
+          console.log('Restoring PGN mode - went back to starting position');
+          setPgnMode(true);
+          setIsEngineMode(false);
+          isEngineModeRef.current = false;
+          pgnExhaustionIndexRef.current = null; // Reset exhaustion tracking
+        } else if (lichessExhaustionIndexRef.current !== null) {
+          console.log('Restoring Lichess mode - went back to starting position');
+          setIsEngineMode(false);
+          isEngineModeRef.current = false;
+          lichessExhaustionIndexRef.current = null; // Reset exhaustion tracking
+        }
+        
         evalPositionOnly(startFen === 'startpos' ? 'startpos' : startFen, startTurn);
       }
       return prev;
