@@ -15,6 +15,54 @@ import {
 import ChessBoardWebView, { ChessBoardWebViewRef } from './ChessBoardWebView';
 import SettingsModal from './SettingsModal';
 import engine from './StockfishEngine';
+import { parse } from '@mliebelt/pgn-parser';
+import { Chess } from 'chess.js';
+
+type PgnTree = Record<string, string[]>;
+
+const buildPgnTree = (pgnText: string): PgnTree => {
+  const gamesResult = parse(pgnText, { startRule: 'games' } as any);
+  const games = Array.isArray(gamesResult) ? gamesResult : [gamesResult];
+
+  const tree: Record<string, Set<string>> = {};
+  // Normalize FEN by taking only first 3 parts (board, turn, castling) - ignore en passant
+  const norm = (fen: string) => fen.split(' ').slice(0, 3).join(' ');
+
+  const proc = (movesList: any[], startFen: string) => {
+    if (!movesList) return;
+    const c = new Chess(startFen);
+    for (const m of movesList) {
+      if (!m || !m.notation || !m.notation.notation) continue;
+      const san = m.notation.notation;
+      const key = norm(c.fen());
+
+      if (!tree[key]) tree[key] = new Set();
+      tree[key].add(san);
+
+      if (m.variations && m.variations.length > 0) {
+        for (const v of m.variations) {
+          proc(v, c.fen());
+        }
+      }
+
+      try {
+        c.move(san);
+      } catch {
+        break;
+      }
+    }
+  };
+
+  for (const g of games as any[]) {
+    proc(g.moves, new Chess().fen());
+  }
+
+  const result: PgnTree = {};
+  for (const k in tree) {
+    result[k] = Array.from(tree[k]);
+  }
+  return result;
+};
 
 function App(): React.JSX.Element {
   const boardRef = useRef<ChessBoardWebViewRef>(null);
@@ -29,6 +77,10 @@ function App(): React.JSX.Element {
   const [promotionData, setPromotionData] = useState<{ from: string; to: string } | null>(null);
   const [isFenModalVisible, setIsFenModalVisible] = useState(false);
   const [fenInput, setFenInput] = useState('');
+  const [isPgnModalVisible, setIsPgnModalVisible] = useState(false);
+  const [pgnInput, setPgnInput] = useState('');
+  const [pgnTree, setPgnTree] = useState<PgnTree | null>(null);
+  const [pgnMode, setPgnMode] = useState(false);
   const [moveHistory, setMoveHistory] = useState<{ san: string; fen: string }[]>([]);
   const historyIndexRef = useRef<number>(-1); // -1 means at latest position
   const isReviewingRef = useRef<boolean>(false);
@@ -121,6 +173,51 @@ function App(): React.JSX.Element {
     if (isReviewingRef.current) return; // Don't play during history review
     if (currentTurn === computerColorRef.current) {
       setTimeout(() => {
+        // 1) Try PGN-based move if PGN mode is on and we have a tree
+        if (pgnMode && pgnTree) {
+          console.log('PGN mode active, checking for moves in tree...');
+          console.log('Current FEN before normalization:', currentFen);
+          const fenParts = currentFen.split(' ');
+          console.log('FEN parts:', fenParts);
+          const normFen =
+            currentFen === 'startpos'
+              ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w'
+              : fenParts.slice(0, 3).join(' ');
+
+          console.log(`Looking for moves at position: ${normFen}`);
+          const movesFromPgn = pgnTree[normFen];
+          
+          if (movesFromPgn && movesFromPgn.length > 0) {
+            const san = movesFromPgn[Math.floor(Math.random() * movesFromPgn.length)];
+            console.log(`Found ${movesFromPgn.length} PGN moves, selected: ${san}`);
+            console.log('Available PGN moves:', movesFromPgn);
+
+            const script = `
+              if (window.board && window.game) {
+                var move = window.game.move('${san}');
+                if (move) {
+                  window.board.position(window.game.fen());
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'MOVE',
+                    move: { from: move.from, to: move.to, san: move.san, fen: window.game.fen() }
+                  }));
+                  checkStatus();
+                }
+              }
+            `;
+            boardRef.current?.injectJavaScript?.(script);
+            return;
+          } else {
+            console.log('No PGN moves available for this position, switching to Stockfish.');
+            console.log('Current position FEN:', normFen);
+            Alert.alert('PGN Exhausted', 'No more moves available in PGN. Switching to Stockfish engine.', [{ text: 'OK' }]);
+            setPgnMode(false);
+            setIsEngineMode(true);
+            isEngineModeRef.current = true;
+          }
+        }
+
+        // 2) Fallback: DB/engine logic as before
         if (isEngineModeRef.current) {
           // Engine mode: let Stockfish decide
           const pos = currentFen === 'startpos' ? 'startpos' : `fen ${currentFen}`;
@@ -288,6 +385,46 @@ function App(): React.JSX.Element {
     if (promotionData) {
       boardRef.current?.confirmPromotion(promotionData.from, promotionData.to, piece);
       setPromotionData(null);
+    }
+  };
+
+  const handleLoadPgnFromText = () => {
+    const text = pgnInput.trim();
+    if (!text) {
+      Alert.alert('Error', 'Please paste a PGN first.');
+      return;
+    }
+
+    try {
+      const tree = buildPgnTree(text);
+      if (Object.keys(tree).length === 0) {
+        Alert.alert('Error', 'No moves found in this PGN.');
+        return;
+      }
+
+      // Log the PGN tree structure
+      console.log('PGN Tree loaded:', JSON.stringify(tree, null, 2));
+      console.log('Total positions in PGN tree:', Object.keys(tree).length);
+      
+      // Log possible moves for each position
+      Object.entries(tree).forEach(([fen, moves]) => {
+        console.log(`Position ${fen}: ${moves.length} possible moves:`, moves);
+      });
+
+      setPgnTree(tree);
+      setPgnMode(true);
+      setIsEngineMode(false); // Ensure we're not in engine mode when loading PGN
+      isEngineModeRef.current = false;
+      
+      // Reset the board when loading PGN
+      handleReset();
+      
+      Alert.alert('Success', 'PGN loaded. Board reset. Computer will play from this PGN.');
+      setIsPgnModalVisible(false);
+      setPgnInput('');
+    } catch (e) {
+      console.error('PGN parse error', e);
+      Alert.alert('Error', 'Failed to parse PGN text.');
     }
   };
 
@@ -547,6 +684,14 @@ function App(): React.JSX.Element {
           >
             <Text style={styles.fenButtonText}>Paste FEN</Text>
           </TouchableOpacity>
+          <View style={{ width: 12 }} />
+          <TouchableOpacity
+            style={styles.fenButton}
+            onPress={() => setIsPgnModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.fenButtonText}>Paste PGN</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Promotion Selection Modal */}
@@ -605,6 +750,46 @@ function App(): React.JSX.Element {
                 <TouchableOpacity
                   style={[styles.modalButton, styles.loadButton]}
                   onPress={handleLoadFen}
+                >
+                  <Text style={styles.buttonText}>Load</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* PGN Input Modal */}
+        {isPgnModalVisible && (
+          <View style={styles.modalOverlay}>
+            <View style={styles.promotionModal}>
+              <Text style={styles.modalTitle}>Load PGN</Text>
+              <View style={styles.inputContainer}>
+                <ScrollView style={{ maxHeight: 200 }}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Paste PGN here..."
+                    placeholderTextColor="#666"
+                    value={pgnInput}
+                    onChangeText={setPgnInput}
+                    multiline
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </ScrollView>
+              </View>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => {
+                    setIsPgnModalVisible(false);
+                    setPgnInput('');
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.loadButton]}
+                  onPress={handleLoadPgnFromText}
                 >
                   <Text style={styles.buttonText}>Load</Text>
                 </TouchableOpacity>

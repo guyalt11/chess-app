@@ -1,0 +1,140 @@
+[
+  {
+    "tags": {},
+    "gameComment": null,
+    "moves": [
+      {
+        "moveNumber": 1,
+        "notation": {
+          "fig": null,
+          "strike": null,
+          "col": "e",
+          "row": "4",
+          "check": null,
+          "promotion": null,
+          "notation": "e4"
+        },
+        "variations": [],
+        "nag": null,
+        "commentDiag": null,
+        "turn": "w"
+      },
+      {
+        "moveNumber": null,
+        "notation": {
+          "fig": null,
+          "strike": null,
+          "col": "e",
+          "row": "5",
+          "check": null,
+          "promotion": null,
+          "notation": "e5"
+        },
+        "variations": [],
+        "nag": null,
+        "commentDiag": null,
+        "turn": "b"
+      },
+      {
+        "moveNumber": 2,
+        "notation": {
+          "fig": "N",
+          "strike": null,
+          "col": "f",
+          "row": "3",
+          "check": null,
+          "promotion": null,
+          "notation": "Nf3"
+        },
+        "variations": [],
+        "nag": null,
+        "commentDiag": null,
+        "turn": "w"
+      },
+      {
+        "moveNumber": null,
+        "notation": {
+          "fig": "N",
+          "strike": null,
+          "col": "c",
+          "row": "6",
+          "check": null,
+          "promotion": null,
+          "notation": "Nc6"
+        },
+        "variations": [
+          [
+            {
+              "moveNumber": 2,
+              "notation": {
+                "fig": "N",
+                "strike": null,
+                "col": "f",
+                "row": "6",
+                "check": null,
+                "promotion": null,
+                "notation": "Nf6"
+              },
+              "variations": [],
+              "nag": null,
+              "commentDiag": null,
+              "turn": "b"
+            },
+            {
+              "moveNumber": 3,
+              "notation": {
+                "fig": "N",
+                "strike": "x",
+                "col": "e",
+                "row": "5",
+                "check": null,
+                "promotion": null,
+                "notation": "Nxe5"
+              },
+              "variations": [],
+              "nag": null,
+              "commentDiag": null,
+              "turn": "w"
+            },
+            {
+              "moveNumber": null,
+              "notation": {
+                "fig": null,
+                "strike": null,
+                "col": "d",
+                "row": "5",
+                "check": null,
+                "promotion": null,
+                "notation": "d5"
+              },
+              "variations": [],
+              "nag": null,
+              "commentDiag": null,
+              "turn": "b"
+            }
+          ]
+        ],
+        "nag": null,
+        "commentDiag": null,
+        "turn": "b"
+      },
+      {
+        "moveNumber": 3,
+        "notation": {
+          "fig": "B",
+          "strike": null,
+          "col": "b",
+          "row": "5",
+          "check": null,
+          "promotion": null,
+          "notation": "Bb5"
+        },
+        "variations": [],
+        "nag": null,
+        "commentDiag": null,
+        "turn": "w"
+      }
+    ],
+    "messages": []
+  }
+]
