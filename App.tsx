@@ -99,6 +99,12 @@ function App(): React.JSX.Element {
   const loadedTypeRef = useRef<'none' | 'pgn' | 'fen'>('none');
   const pgnExhaustionIndexRef = useRef<number | null>(null); // Track when PGN was exhausted
   const lichessExhaustionIndexRef = useRef<number | null>(null); // Track when Lichess was exhausted
+  
+  // Database settings
+  const [dbMovesCount, setDbMovesCount] = useState(15);
+  const [dbMinGames, setDbMinGames] = useState(50);
+  const [dbMinRating, setDbMinRating] = useState<number | null>(null);
+  const [dbMaxRating, setDbMaxRating] = useState<number | null>(null);
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -223,7 +229,7 @@ function App(): React.JSX.Element {
           // Engine mode: let Stockfish decide
           const pos = currentFen === 'startpos' ? 'startpos' : `fen ${currentFen}`;
           engine.send(`position ${pos}`);
-          engine.send('go depth 15');
+          engine.send('go movetime 1000');
         } else {
           // DB mode: query Lichess opening explorer
           playLichessDbMove(currentFen);
@@ -239,24 +245,35 @@ function App(): React.JSX.Element {
         fen === 'startpos'
           ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
           : fen;
-      const url = `https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fenForApi)}&moves=15&topGames=0&recentGames=0`;
+      // Build URL with dynamic parameters
+      let url = `https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fenForApi)}&moves=${dbMovesCount}&topGames=0&recentGames=0`;
+      
+      // Add rating filters if specified
+      if (dbMinRating !== null || dbMaxRating !== null) {
+        const ratings = [];
+        if (dbMinRating !== null) ratings.push(dbMinRating);
+        if (dbMaxRating !== null) ratings.push(dbMaxRating);
+        url += `&ratings=${ratings.join(',')}`;
+      }
+      
       const response = await fetch(url);
       
       // Check for rate limiting
       if (response.status === 429) {
         console.log('Lichess API rate limit exceeded.');
+        console.log(url);
         setComputerMode('Engine');
         setIsEngineMode(true);
         isEngineModeRef.current = true;
         const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
         engine.send(`position ${pos}`);
-        engine.send('go depth 15');
+        engine.send('go movetime 1000');
         return;
       }
       
       const data = await response.json();
 
-      const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > 50);
+      const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > dbMinGames);
 
       if (validMoves.length === 0) {
         // Track the position where Lichess was exhausted
@@ -267,7 +284,7 @@ function App(): React.JSX.Element {
         // Fallback to engine
         const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
         engine.send(`position ${pos}`);
-        engine.send('go depth 15');
+        engine.send('go movetime 1000');
         return;
       }
 
@@ -310,7 +327,7 @@ function App(): React.JSX.Element {
       isEngineModeRef.current = true;
       const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
       engine.send(`position ${pos}`);
-      engine.send('go depth 15');
+      engine.send('go movetime 1000');
     }
   };
 
@@ -689,6 +706,7 @@ function App(): React.JSX.Element {
 
   const handleEloChange = (elo: number) => {
     botEloRef.current = elo;
+    setBotElo(elo); // Update the state to reflect in settings
     // Apply new ELO to the engine immediately
     engine.send('setoption name UCI_LimitStrength value true');
     engine.send(`setoption name UCI_Elo value ${elo}`);
@@ -777,7 +795,16 @@ function App(): React.JSX.Element {
         const fenForApi = currentFen === 'startpos'
           ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
           : currentFen;
-        const url = `https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fenForApi)}&moves=15&topGames=0&recentGames=0`;
+        // Build URL with dynamic parameters
+        let url = `https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fenForApi)}&moves=${dbMovesCount}&topGames=0&recentGames=0`;
+        
+        // Add rating filters if specified
+        if (dbMinRating !== null || dbMaxRating !== null) {
+          const ratings = [];
+          if (dbMinRating !== null) ratings.push(dbMinRating);
+          if (dbMaxRating !== null) ratings.push(dbMaxRating);
+          url += `&ratings=${ratings.join(',')}`;
+        }
         const response = await fetch(url);
         
         if (response.status === 429) {
@@ -787,7 +814,7 @@ function App(): React.JSX.Element {
         }
         
         const data = await response.json();
-        const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > 50);
+        const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > dbMinGames);
         const moveSanList = validMoves.map((m: any) => `${m.san} (${m.white + m.draws + m.black} games)`);
         setPossibleMoves(moveSanList);
         setShowPossibleMoves(true);
@@ -955,6 +982,7 @@ function App(): React.JSX.Element {
           </View>
         </View>
 
+        {!isSettingsVisible && (
         <View style={styles.controls}>
           <TouchableOpacity
             style={[styles.actionIcon, { backgroundColor: '#E3B23C', shadowColor: '#E3B23C' }]}
@@ -1007,6 +1035,7 @@ function App(): React.JSX.Element {
             <Text style={styles.fenButtonTextSmall}>Moves</Text>
           </TouchableOpacity>
         </View>
+        )}
 
         {/* Promotion Selection Modal */}
         {promotionData && (
@@ -1136,6 +1165,14 @@ function App(): React.JSX.Element {
           currentElo={botElo}
           onSelectElo={handleEloChange}
           onClose={() => setIsSettingsVisible(false)}
+          dbMovesCount={dbMovesCount}
+          onDbMovesCountChange={setDbMovesCount}
+          dbMinGames={dbMinGames}
+          onDbMinGamesChange={setDbMinGames}
+          dbMinRating={dbMinRating}
+          onDbMinRatingChange={setDbMinRating}
+          dbMaxRating={dbMaxRating}
+          onDbMaxRatingChange={setDbMaxRating}
         />
       </SafeAreaView>
     </View>

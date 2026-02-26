@@ -44,6 +44,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
+  include("C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/RNCSlider_autolinked_build/cmake_install.cmake")
   include("C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/safeareacontext_autolinked_build/cmake_install.cmake")
   include("C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/RNCWebViewSpec_autolinked_build/cmake_install.cmake")
 

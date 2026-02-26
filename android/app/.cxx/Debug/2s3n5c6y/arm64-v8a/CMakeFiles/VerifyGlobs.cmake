@@ -12,6 +12,50 @@ if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
 endif()
 
+# LIB_CUSTOM_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/CMakeLists.txt:12 (file)
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/*.cpp")
+set(OLD_GLOB
+  )
+if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
+  message("-- GLOB mismatch!")
+  file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
+endif()
+
+# LIB_CUSTOM_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/CMakeLists.txt:12 (file)
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/../../../../common/cpp/react/renderer/components/RNCSlider/*.cpp")
+set(OLD_GLOB
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/../../../../common/cpp/react/renderer/components/RNCSlider/RNCSliderMeasurementsManager.cpp"
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/../../../../common/cpp/react/renderer/components/RNCSlider/RNCSliderShadowNode.cpp"
+  )
+if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
+  message("-- GLOB mismatch!")
+  file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
+endif()
+
+# LIB_CODEGEN_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/CMakeLists.txt:13 (file)
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/../../../build/generated/source/codegen/jni/*.cpp")
+set(OLD_GLOB
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/../../../build/generated/source/codegen/jni/RNCSlider-generated.cpp"
+  )
+if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
+  message("-- GLOB mismatch!")
+  file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
+endif()
+
+# LIB_CODEGEN_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/CMakeLists.txt:13 (file)
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/RNCSlider/*.cpp")
+set(OLD_GLOB
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/RNCSlider/ComponentDescriptors.cpp"
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/RNCSlider/EventEmitters.cpp"
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/RNCSlider/Props.cpp"
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/RNCSlider/ShadowNodes.cpp"
+  "C:/Users/guyal/Desktop/Guy/chess/node_modules/@react-native-community/slider/android/src/main/jni/../../../build/generated/source/codegen/jni/react/renderer/components/RNCSlider/States.cpp"
+  )
+if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
+  message("-- GLOB mismatch!")
+  file(TOUCH_NOCREATE "C:/Users/guyal/Desktop/Guy/chess/android/app/.cxx/Debug/2s3n5c6y/arm64-v8a/CMakeFiles/cmake.verify_globs")
+endif()
+
 # LIB_CUSTOM_SRCS at C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt:12 (file)
 file(GLOB NEW_GLOB LIST_DIRECTORIES true "C:/Users/guyal/Desktop/Guy/chess/node_modules/react-native-safe-area-context/android/src/main/jni/*.cpp")
 set(OLD_GLOB

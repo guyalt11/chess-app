@@ -9,6 +9,7 @@ import {
     StatusBar,
     SafeAreaView,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 
 interface EloOption {
     elo: number;
@@ -38,9 +39,71 @@ interface Props {
     currentElo: number;
     onSelectElo: (elo: number) => void;
     onClose: () => void;
+    dbMovesCount: number;
+    onDbMovesCountChange: (count: number) => void;
+    dbMinGames: number;
+    onDbMinGamesChange: (minGames: number) => void;
+    dbMinRating: number | null;
+    onDbMinRatingChange: (rating: number | null) => void;
+    dbMaxRating: number | null;
+    onDbMaxRatingChange: (rating: number | null) => void;
 }
 
-export default function SettingsModal({ visible, currentElo, onSelectElo, onClose }: Props) {
+// Community Slider Component
+const CommunitySlider = ({ 
+    value, 
+    onValueChange, 
+    minimumValue, 
+    maximumValue, 
+    step = 1,
+    label,
+    description
+}: {
+    value: number;
+    onValueChange: (value: number) => void;
+    minimumValue: number;
+    maximumValue: number;
+    step?: number;
+    label: string;
+    description?: string;
+}) => {
+    return (
+        <View style={styles.sliderContainer}>
+            <View style={styles.sliderHeader}>
+                <Text style={styles.sliderLabel}>{label}</Text>
+                <Text style={styles.sliderValue}>{value}</Text>
+            </View>
+            {description && (
+                <Text style={styles.sliderDescription}>{description}</Text>
+            )}
+            <Slider
+                style={styles.communitySlider}
+                minimumValue={minimumValue}
+                maximumValue={maximumValue}
+                step={step}
+                value={value}
+                onValueChange={onValueChange}
+                minimumTrackTintColor="#3F8F88"
+                maximumTrackTintColor="#E0E0E0"
+            />
+        </View>
+    );
+};
+
+export default function SettingsModal({ 
+    visible, 
+    currentElo, 
+    onSelectElo, 
+    onClose,
+    dbMovesCount,
+    onDbMovesCountChange,
+    dbMinGames,
+    onDbMinGamesChange,
+    dbMinRating,
+    onDbMinRatingChange,
+    dbMaxRating,
+    onDbMaxRatingChange
+}: Props) {
     if (!visible) return null;
 
     return (
@@ -112,6 +175,71 @@ export default function SettingsModal({ visible, currentElo, onSelectElo, onClos
                                 </TouchableOpacity>
                             );
                         })}
+                    </View>
+
+                    <View style={{ height: 40 }} />
+
+                    {/* Database Settings Section */}
+                    <Text style={styles.sectionLabel}>📊 Database Settings</Text>
+                    <Text style={styles.sectionSub}>Configure opening database parameters</Text>
+
+                    {/* Moves Count Slider */}
+                    <CommunitySlider
+                        label="Number of Moves"
+                        description="Maximum number of moves to fetch from database"
+                        value={dbMovesCount}
+                        onValueChange={onDbMovesCountChange}
+                        minimumValue={1}
+                        maximumValue={15}
+                        step={1}
+                    />
+
+                    {/* Min Games Slider */}
+                    <CommunitySlider
+                        label="Minimum Games Threshold"
+                        description="Minimum games a move must have to be included"
+                        value={dbMinGames}
+                        onValueChange={onDbMinGamesChange}
+                        minimumValue={1}
+                        maximumValue={50}
+                        step={1}
+                    />
+
+                    {/* Rating Range Settings */}
+                    <View style={styles.settingCard}>
+                        <Text style={styles.settingLabel}>Player Rating Range</Text>
+                        <Text style={styles.settingDesc}>Filter games by player rating (optional)</Text>
+                        
+                        {/* Min Rating Slider */}
+                        <CommunitySlider
+                            label="Minimum Rating"
+                            value={dbMinRating || 800}
+                            onValueChange={(value) => onDbMinRatingChange(value === 800 ? null : value)}
+                            minimumValue={800}
+                            maximumValue={2900}
+                            step={100}
+                        />
+                        
+                        {/* Max Rating Slider */}
+                        <CommunitySlider
+                            label="Maximum Rating"
+                            value={dbMaxRating || 2900}
+                            onValueChange={(value) => onDbMaxRatingChange(value === 2900 ? null : value)}
+                            minimumValue={800}
+                            maximumValue={2900}
+                            step={100}
+                        />
+                        
+                        {/* Clear Button */}
+                        <TouchableOpacity 
+                            style={styles.clearRatingsButton}
+                            onPress={() => {
+                                onDbMinRatingChange(null);
+                                onDbMaxRatingChange(null);
+                            }}
+                        >
+                            <Text style={styles.clearRatingsButtonText}>Clear Rating Filters</Text>
+                        </TouchableOpacity>
                     </View>
 
                     <View style={{ height: 40 }} />
@@ -264,6 +392,243 @@ const styles = StyleSheet.create({
         color: '#000',
         fontSize: 12,
         fontWeight: '900',
+    },
+    // Database Settings Styles
+    settingCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#3F8F88',
+    },
+    settingLabel: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#3F8F88',
+        marginBottom: 4,
+    },
+    settingDesc: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 12,
+    },
+    settingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    settingButton: {
+        backgroundColor: '#3F8F88',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8,
+        minWidth: 50,
+        alignItems: 'center',
+    },
+    settingButtonText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    settingValue: {
+        backgroundColor: '#F0F8F6',
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 8,
+        minWidth: 60,
+        alignItems: 'center',
+    },
+    settingValueText: {
+        color: '#3F8F88',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    ratingRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 16,
+    },
+    ratingInput: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    ratingLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#3F8F88',
+        minWidth: 35,
+    },
+    ratingButton: {
+        flex: 1,
+        backgroundColor: '#3F8F88',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+        alignItems: 'center',
+    },
+    ratingButtonText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    clearRatingsButton: {
+        backgroundColor: '#E74C3C',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 12,
+    },
+    clearRatingsButtonText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    ratingClearButton: {
+        backgroundColor: '#E74C3C',
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    ratingClearButtonText: {
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    // Slider Styles
+    sliderContainer: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#3F8F88',
+    },
+    communitySlider: {
+        width: '100%',
+        height: 40,
+    },
+    sliderHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    sliderLabel: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#3F8F88',
+    },
+    sliderValue: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#3F8F88',
+    },
+    sliderDescription: {
+        fontSize: 12,
+        color: '#666',
+        fontStyle: 'italic',
+        marginTop: -8,
+        marginBottom: 8,
+        marginHorizontal: 4,
+    },
+    sliderValueContainer: {
+        backgroundColor: '#F0F8F6',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 8,
+        minWidth: 50,
+        textAlign: 'center',
+    },
+    sliderTrack: {
+        height: 8,
+        backgroundColor: '#E0E0E0',
+        borderRadius: 4,
+        position: 'relative',
+    },
+    sliderFill: {
+        height: '100%',
+        backgroundColor: '#3F8F88',
+        borderRadius: 4,
+        position: 'absolute',
+        left: 0,
+        top: 0,
+    },
+    sliderThumb: {
+        width: 24,
+        height: 24,
+        backgroundColor: '#3F8F88',
+        borderRadius: 12,
+        position: 'absolute',
+        top: -8,
+        marginLeft: -12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    sliderThumbActive: {
+        backgroundColor: '#2C7A6F',
+        transform: [{ scale: 1.2 }],
+    },
+    // Step Slider Styles
+    stepControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    stepButton: {
+        backgroundColor: '#3F8F88',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    stepButtonDisabled: {
+        backgroundColor: '#CCCCCC',
+    },
+    stepButtonText: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '700',
+    },
+    stepButtonTextDisabled: {
+        color: '#888888',
+    },
+    stepIndicator: {
+        flex: 1,
+        height: 40,
+    },
+    stepScrollContent: {
+        alignItems: 'center',
+        paddingHorizontal: 8,
+    },
+    stepDot: {
+        backgroundColor: '#E0E0E0',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        marginHorizontal: 4,
+        minWidth: 32,
+        alignItems: 'center',
+    },
+    stepDotActive: {
+        backgroundColor: '#3F8F88',
+    },
+    stepDotText: {
+        color: '#666666',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    stepDotTextActive: {
+        color: '#FFFFFF',
     },
 
 });
