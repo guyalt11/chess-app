@@ -788,7 +788,7 @@ function App(): React.JSX.Element {
         
         const data = await response.json();
         const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > 50);
-        const moveSanList = validMoves.map((m: any) => `${m.uci} (${m.white + m.draws + m.black} games)`);
+        const moveSanList = validMoves.map((m: any) => `${m.san} (${m.white + m.draws + m.black} games)`);
         setPossibleMoves(moveSanList);
         setShowPossibleMoves(true);
       } catch (error) {
@@ -1125,14 +1125,6 @@ function App(): React.JSX.Element {
                     </Text>
                   ))}
                 </ScrollView>
-              </View>
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.loadButton]}
-                  onPress={() => setShowPossibleMoves(false)}
-                >
-                  <Text style={styles.buttonText}>Close</Text>
-                </TouchableOpacity>
               </View>
             </View>
           </View>
