@@ -19,20 +19,29 @@ interface EloOption {
 }
 
 const ELO_OPTIONS: EloOption[] = [
-    { elo: 400, label: 'Beginner', description: 'Just learning the rules', color: '#74b772' },
-    { elo: 600, label: 'Novice', description: 'Knows basic tactics', color: '#8bc34a' },
-    { elo: 800, label: 'Amateur', description: 'Starting to plan ahead', color: '#c6d440' },
-    { elo: 1000, label: 'Club Player', description: 'Comfortable in most positions', color: '#f0d030' },
-    { elo: 1200, label: 'Intermediate', description: 'Recognises common patterns', color: '#f0a830' },
-    { elo: 1400, label: 'Adv. Amateur', description: 'Strong tactical awareness', color: '#f08030' },
-    { elo: 1600, label: 'Expert', description: 'Solid positional understanding', color: '#e05030' },
-    { elo: 1800, label: 'Candidate', description: 'Dangerous in the endgame', color: '#d03050' },
-    { elo: 2000, label: 'National Master', description: 'Precise calculation', color: '#c030c0' },
-    { elo: 2200, label: 'FIDE Master', description: 'Tournament-level threat', color: '#9040d0' },
-    { elo: 2400, label: 'Int\'l Master', description: 'Near-flawless strategy', color: '#6060e0' },
-    { elo: 2600, label: 'Grandmaster', description: 'Elite level competitor', color: '#4080e0' },
-    { elo: 2800, label: 'Super GM', description: 'World championship caliber', color: '#03DAC6' },
+{ elo: 400,  label: 'Beginner',              description: 'Learning the rules and piece movement',        color: '#74b772' }, // green
+{ elo: 600,  label: 'Novice',                description: 'Understands basic tactics and checkmates',     color: '#9ccc65' }, // light green
+{ elo: 800,  label: 'Amateur',               description: 'Starting to plan moves ahead',                 color: '#d4e157' }, // yellow-green
+{ elo: 1000, label: 'Developing Player',     description: 'Avoids simple blunders consistently',          color: '#fdd835' }, // yellow
+{ elo: 1200, label: 'Intermediate',          description: 'Recognises common tactical patterns',          color: '#ffb300' }, // amber
+{ elo: 1400, label: 'Advanced Player',       description: 'Calculates short combinations accurately',     color: '#fb8c00' }, // orange
+{ elo: 1600, label: 'Club Player',           description: 'Solid positional understanding',               color: '#f4511e' }, // reddish-orange
+{ elo: 1800, label: 'Strong Club Player',    description: 'Strategic planning and strong endgames',       color: '#e53935' }, // red
+{ elo: 2000, label: 'Expert',                description: 'Precise calculation and deep tactical vision', color: '#8e24aa' }, // purple
+{ elo: 2200, label: 'Candidate Master',      description: 'National master strength',                     color: '#5e35b1' }, // indigo
+{ elo: 2400, label: 'International Master',  description: 'Elite international competitor',               color: '#3949ab' }, // royal blue
+{ elo: 2600, label: 'Grandmaster',           description: 'World-class professional level',               color: '#1e88e5' }, // blue
+{ elo: 2800, label: 'Super Grandmaster',     description: 'World championship contender level',           color: '#00acc1' }, // cyan
+{ elo: 3000, label: 'Engine',                description: 'Computer-level precision and near-perfect play', color: '#00bcd4' }, // bright cyan
+{ elo: 3200, label: 'Stockfish',             description: 'Maximum engine strength (no Elo limit)',       color: '#4ce1e1d8' }, // deep indigo
 ];
+
+// Helper function to find the closest Elo option
+const getEloOption = (elo: number) => {
+    return ELO_OPTIONS.reduce((prev, curr) => 
+        Math.abs(curr.elo - elo) < Math.abs(prev.elo - elo) ? curr : prev
+    );
+};
 
 interface Props {
     visible: boolean;
@@ -134,52 +143,32 @@ export default function SettingsModal({
                     {/* Current Selection Banner */}
                     <View style={[
                         styles.selectedBanner,
-                        { borderColor: ELO_OPTIONS.find(o => o.elo === currentElo)?.color ?? '#3F8F88' },
+                        { borderColor: getEloOption(currentElo).color },
                     ]}>
                         <View>
                             <Text style={styles.selectedBannerLabel}>
-                                {ELO_OPTIONS.find(o => o.elo === currentElo)?.label ?? 'Custom'}
+                                {getEloOption(currentElo).label}
                             </Text>
                             <Text style={styles.selectedBannerElo}>Elo {currentElo}</Text>
                         </View>
                         <View style={[
                             styles.eloBadge,
-                            { backgroundColor: ELO_OPTIONS.find(o => o.elo === currentElo)?.color ?? '#3F8F88' },
+                            { backgroundColor: getEloOption(currentElo).color },
                         ]}>
                             <Text style={styles.eloBadgeText}>ACTIVE</Text>
                         </View>
                     </View>
 
-                    {/* ELO Grid */}
-                    <View style={styles.grid}>
-                        {ELO_OPTIONS.map((option) => {
-                            const isSelected = option.elo === currentElo;
-                            return (
-                                <TouchableOpacity
-                                    key={option.elo}
-                                    style={[
-                                        styles.card,
-                                        isSelected && { borderColor: option.color, borderWidth: 2 },
-                                    ]}
-                                    onPress={() => onSelectElo(option.elo)}
-                                    activeOpacity={0.7}
-                                >
-                                    {/* Colored top stripe */}
-                                    <View style={[styles.cardStripe, { backgroundColor: option.color }]} />
-                                    <View style={styles.cardBody}>
-                                        <Text style={styles.cardElo}>{option.elo}</Text>
-                                        <Text style={styles.cardLabel}>{option.label}</Text>
-                                        <Text style={styles.cardDesc} numberOfLines={2}>{option.description}</Text>
-                                    </View>
-                                    {isSelected && (
-                                        <View style={[styles.checkBadge, { backgroundColor: option.color }]}>
-                                            <Text style={styles.checkText}>✓</Text>
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
+                    {/* Elo Slider */}
+                    <CommunitySlider
+                        label="Bot Strength (Elo)"
+                        description={getEloOption(currentElo).description}
+                        value={currentElo}
+                        onValueChange={onSelectElo}
+                        minimumValue={400}
+                        maximumValue={3200}
+                        step={200}
+                    />
 
                     <View style={{ height: 40 }} />
 

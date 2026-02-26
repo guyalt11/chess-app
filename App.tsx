@@ -746,10 +746,19 @@ function App(): React.JSX.Element {
   const handleEloChange = (elo: number) => {
     botEloRef.current = elo;
     setBotElo(elo); // Update the state to reflect in settings
-    // Apply new ELO to the engine immediately
-    engine.send('setoption name UCI_LimitStrength value true');
-    engine.send(`setoption name UCI_Elo value ${elo}`);
-    engine.send('isready');
+    
+    // Apply ELO settings to engine
+    if (elo === 3500) {
+      // Stockfish mode - disable Elo limit for maximum strength
+      engine.send('setoption name UCI_LimitStrength value false');
+      engine.send('isready');
+    } else {
+      // Normal Elo-limited mode
+      engine.send('setoption name UCI_LimitStrength value true');
+      engine.send(`setoption name UCI_Elo value ${elo}`);
+      engine.send('isready');
+    }
+    
     // Reset game so new ELO takes effect cleanly, but preserve loaded content
     if (loadedType === 'pgn') {
       // For PGN, reset to starting position with PGN mode preserved
@@ -774,7 +783,6 @@ function App(): React.JSX.Element {
       // For FEN or none, use normal reset
       handleReset();
     }
-    setIsSettingsVisible(false);
   };
 
   const handleClearLoaded = () => {
