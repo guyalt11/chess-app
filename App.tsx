@@ -532,6 +532,13 @@ function App(): React.JSX.Element {
     engine.send('stop'); // cancel any ongoing engine search
 
     setMoveHistory(prev => {
+      // Check if there's any history to navigate
+      if (!prev || prev.length === 0) {
+        isReviewingRef.current = false;
+        historyIndexRef.current = -1;
+        return prev;
+      }
+      
       // Use the actual current index directly — never derive from -1 to prev.length-1 here
       const currentIdx = historyIndexRef.current;
       const newIdx = Math.max(-1, currentIdx - 2);
@@ -608,19 +615,54 @@ function App(): React.JSX.Element {
     });
   };
 
-  const handleStepForward = () => {
+  const handleStepForward = () => {    
     // Set review mode synchronously BEFORE anything async
     isReviewingRef.current = true;
     setShowPossibleMoves(false); // Hide moves modal when navigating forward
     engine.send('stop'); // cancel any ongoing engine search
 
     setMoveHistory(prev => {
-      const currentIdx = historyIndexRef.current;
-      if (currentIdx >= prev.length - 1) {
+      // SAFEGUARD: If prev is undefined, return empty array to prevent crashes
+      if (!prev) {
         isReviewingRef.current = false;
-        historyIndexRef.current = prev.length - 1;
+        historyIndexRef.current = -1;
+        return [];
+      }
+      
+      // Check if there's any history to navigate
+      if (prev.length === 0) {
+        isReviewingRef.current = false;
+        historyIndexRef.current = -1;
         return prev;
       }
+      
+      const currentIdx = historyIndexRef.current;
+      
+      // If we're at the latest position (-1), we can't go forward
+      if (currentIdx === -1) {
+        isReviewingRef.current = false;
+        historyIndexRef.current = -1;
+        return prev;
+      }
+      
+      // If we're at or past the last move, go to latest position
+      if (currentIdx >= prev.length - 1) {
+        isReviewingRef.current = false;
+        historyIndexRef.current = -1; // Go to latest position
+        const latestFen = prev[prev.length - 1]?.fen || 'startpos';
+        currentFenRef.current = latestFen;
+        
+        // Update board to latest position
+        boardRef.current?.setFen(latestFen);
+        const latestTurn = (latestFen.split(' ')[1] || 'w') as 'w' | 'b';
+        setTurn(latestTurn);
+        turnRef.current = latestTurn;
+        
+        // DON'T trigger computer immediately - let the normal flow handle it
+        // triggerComputerIfItsTurn(latestTurn, latestFen);
+        return prev;
+      }
+      
       // Move 2 half-moves forward, clamped to the last available move
       const newIdx = Math.min(prev.length - 1, currentIdx + 2);
       historyIndexRef.current = newIdx;
@@ -634,14 +676,14 @@ function App(): React.JSX.Element {
         turnRef.current = t;
 
         if (!isReviewingRef.current) {
-          // Reached the latest position — re-enable engine if it's computer's turn
           currentFenRef.current = targetFen;
-          triggerComputerIfItsTurn(t, targetFen);
         } else {
           evalPositionOnly(targetFen, t);
         }
       }
-    setIsSettingsVisible(false);
+      
+      setIsSettingsVisible(false);
+      return prev; // Always return the array
     });
   };
 
@@ -714,7 +756,7 @@ function App(): React.JSX.Element {
   const handleShowPossibleMoves = async () => {
     // Get the current FEN from history if reviewing, otherwise from ref
     let currentFen: string;
-    if (isReviewingRef.current && historyIndexRef.current >= 0 && historyIndexRef.current < moveHistory.length) {
+    if (isReviewingRef.current && historyIndexRef.current >= 0 && moveHistory && historyIndexRef.current < moveHistory.length) {
       currentFen = moveHistory[historyIndexRef.current].fen;
     } else {
       currentFen = currentFenRef.current;
@@ -824,7 +866,7 @@ function App(): React.JSX.Element {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.historyScrollContent}
               >
-                {moveHistory.length === 0 ? (
+                {!moveHistory || moveHistory.length === 0 ? (
                   <Text style={styles.noMovesText}>No moves yet</Text>
                 ) : (
                   Array.from({ length: Math.ceil(moveHistory.length / 2) }, (_, i) => (
