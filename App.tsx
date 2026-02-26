@@ -103,7 +103,6 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const setupEngine = async () => {
       try {
-        console.log('Initializing Stockfish...');
         await engine.init();
         await engine.start();
 
@@ -183,22 +182,16 @@ function App(): React.JSX.Element {
       setTimeout(() => {
         // 1) Try PGN-based move if PGN mode is on and we have a tree
         if (loadedTypeRef.current === 'pgn' && pgnTreeRef.current) {
-          console.log('PGN mode active, checking for moves in tree...');
-          console.log('Current FEN before normalization:', currentFen);
           const fenParts = currentFen.split(' ');
-          console.log('FEN parts:', fenParts);
           const normFen =
             currentFen === 'startpos'
               ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq'
               : fenParts.slice(0, 3).join(' ');
 
-          console.log(`Looking for moves at position: ${normFen}`);
           const movesFromPgn = pgnTreeRef.current[normFen];
           
           if (movesFromPgn && movesFromPgn.length > 0) {
             const san = movesFromPgn[Math.floor(Math.random() * movesFromPgn.length)];
-            console.log(`Found ${movesFromPgn.length} PGN moves, selected: ${san}`);
-            console.log('Available PGN moves:', movesFromPgn);
 
             const script = `
               if (window.board && window.game) {
@@ -216,11 +209,8 @@ function App(): React.JSX.Element {
             boardRef.current?.injectJavaScript?.(script);
             return;
           } else {
-            console.log('No PGN moves available for this position, switching to Stockfish.');
-            console.log('Current position FEN:', normFen);
             // Track the position where PGN was exhausted
             pgnExhaustionIndexRef.current = historyIndexRef.current;
-            console.log('PGN exhausted at history index:', pgnExhaustionIndexRef.current);
             setComputerMode('Engine');
             setPgnMode(false);
             setIsEngineMode(true);
@@ -269,10 +259,8 @@ function App(): React.JSX.Element {
       const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > 50);
 
       if (validMoves.length === 0) {
-        console.log('No DB moves with > 50 games found. Switching to Engine.');
         // Track the position where Lichess was exhausted
         lichessExhaustionIndexRef.current = historyIndexRef.current;
-        console.log('Lichess exhausted at history index:', lichessExhaustionIndexRef.current);
         setComputerMode('Engine');
         setIsEngineMode(true);
         isEngineModeRef.current = true;
@@ -282,8 +270,6 @@ function App(): React.JSX.Element {
         engine.send('go depth 15');
         return;
       }
-
-      console.log('Available DB Moves (> 50 games):', validMoves.map((m: any) => ({ uci: m.uci, games: m.white + m.draws + m.black })));
 
       // Pick a random valid move
       const randomIndex = Math.floor(Math.random() * validMoves.length);
@@ -468,15 +454,6 @@ function App(): React.JSX.Element {
         return;
       }
 
-      // Log the PGN tree structure
-      console.log('PGN Tree loaded:', JSON.stringify(tree, null, 2));
-      console.log('Total positions in PGN tree:', Object.keys(tree).length);
-      
-      // Log possible moves for each position
-      Object.entries(tree).forEach(([fen, moves]) => {
-        console.log(`Position ${fen}: ${moves.length} possible moves:`, moves);
-      });
-
       setPgnTree(tree);
       pgnTreeRef.current = tree;
       setPgnMode(true);
@@ -504,23 +481,7 @@ function App(): React.JSX.Element {
       engine.send('ucinewgame');
       engine.send('isready');
       engine.send('position startpos');
-      
-      // Check if computer should move immediately (e.g., if computer is White)
-      // Use refs directly to avoid state timing issues
-      console.log('Checking if computer should move after PGN load...');
-      console.log('Computer color:', computerColorRef.current);
-      console.log('Current turn:', 'w');
-      console.log('Loaded type state:', loadedType);
-      console.log('Loaded type ref:', loadedTypeRef.current);
-      console.log('PGN tree state:', !!pgnTree);
-      console.log('PGN tree ref:', !!pgnTreeRef.current);
-      
-      // Debug: Check if starting position has moves in PGN tree
-      const startFen = 'rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQkq';
-      console.log('Starting position FEN:', startFen);
-      console.log('Moves available for starting position:', pgnTreeRef.current?.[startFen]);
-      
-      // Call triggerComputerIfItsTurn immediately - refs should be available
+            
       triggerComputerIfItsTurn('w', 'startpos');
       
       Alert.alert('Success', 'PGN loaded. Board reset. Computer will play from this PGN.');
@@ -587,18 +548,15 @@ function App(): React.JSX.Element {
         
         // Check if we should restore PGN or Lichess mode
         if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && newIdx < pgnExhaustionIndexRef.current) {
-          console.log('Restoring PGN mode - went back to index:', newIdx, 'PGN exhausted at:', pgnExhaustionIndexRef.current);
           setPgnMode(true);
           setComputerMode('PGN');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
         } else if (loadedType === 'fen' && lichessExhaustionIndexRef.current !== null && newIdx < lichessExhaustionIndexRef.current) {
-          console.log('Restoring Database mode for FEN - went back to index:', newIdx, 'Lichess exhausted at:', lichessExhaustionIndexRef.current);
           setComputerMode('Database');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
         } else if (loadedType === 'none' && lichessExhaustionIndexRef.current !== null && newIdx < lichessExhaustionIndexRef.current) {
-          console.log('Restoring Database mode - went back to index:', newIdx, 'Lichess exhausted at:', lichessExhaustionIndexRef.current);
           setComputerMode('Database');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
@@ -624,20 +582,17 @@ function App(): React.JSX.Element {
         
         // Always restore appropriate mode when going back to start
         if (loadedType === 'pgn' && pgnTree) {
-          console.log('Restoring PGN mode - went back to starting position');
           setPgnMode(true);
           setComputerMode('PGN');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
           pgnExhaustionIndexRef.current = null; // Reset exhaustion tracking
         } else if (loadedType === 'fen') {
-          console.log('Restoring Database mode for FEN - went back to starting position');
           setComputerMode('Database');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
           lichessExhaustionIndexRef.current = null; // Reset exhaustion tracking
         } else if (lichessExhaustionIndexRef.current !== null) {
-          console.log('Restoring Database mode - went back to starting position');
           setComputerMode('Database');
           setIsEngineMode(false);
           isEngineModeRef.current = false;
@@ -757,11 +712,13 @@ function App(): React.JSX.Element {
   };
 
   const handleShowPossibleMoves = async () => {
-    const currentFen = currentFenRef.current;
-    console.log('handleShowPossibleMoves called with FEN:', currentFen);
-    console.log('loadedType:', loadedType);
-    console.log('computerMode:', computerMode);
-    console.log('pgnTree exists:', !!pgnTree);
+    // Get the current FEN from history if reviewing, otherwise from ref
+    let currentFen: string;
+    if (isReviewingRef.current && historyIndexRef.current >= 0 && historyIndexRef.current < moveHistory.length) {
+      currentFen = moveHistory[historyIndexRef.current].fen;
+    } else {
+      currentFen = currentFenRef.current;
+    }
     
     if (loadedType === 'pgn' && pgnTree) {
       // Get PGN moves for current position
@@ -772,7 +729,6 @@ function App(): React.JSX.Element {
       const moves = pgnTree[normFen] || [];
       setPossibleMoves(moves);
       setShowPossibleMoves(true);
-      console.log('PGN moves available:', moves);
     } else if (loadedType === 'fen' || loadedType === 'none') {
       // Get Lichess moves for current position
       try {
@@ -793,11 +749,9 @@ function App(): React.JSX.Element {
         const moveSanList = validMoves.map((m: any) => `${m.uci} (${m.white + m.draws + m.black} games)`);
         setPossibleMoves(moveSanList);
         setShowPossibleMoves(true);
-        console.log('Lichess moves available:', moveSanList);
       } catch (error) {
         setPossibleMoves(['Error fetching moves']);
         setShowPossibleMoves(true);
-        console.log('Error fetching Lichess moves:', error);
       }
     } else {
       // Engine mode - show message
@@ -889,18 +843,15 @@ function App(): React.JSX.Element {
                             
                             // Restore appropriate mode based on loaded type and exhaustion
                             if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && i * 2 < pgnExhaustionIndexRef.current) {
-                              console.log('Restoring PGN mode from move click');
                               setPgnMode(true);
                               setComputerMode('PGN');
                               setIsEngineMode(false);
                               isEngineModeRef.current = false;
                             } else if (loadedType === 'fen' && lichessExhaustionIndexRef.current !== null && i * 2 < lichessExhaustionIndexRef.current) {
-                              console.log('Restoring Database mode for FEN from move click');
                               setComputerMode('Database');
                               setIsEngineMode(false);
                               isEngineModeRef.current = false;
                             } else if (loadedType === 'none' && lichessExhaustionIndexRef.current !== null && i * 2 < lichessExhaustionIndexRef.current) {
-                              console.log('Restoring Database mode from move click');
                               setComputerMode('Database');
                               setIsEngineMode(false);
                               isEngineModeRef.current = false;
@@ -928,18 +879,15 @@ function App(): React.JSX.Element {
                             
                             // Restore appropriate mode based on loaded type and exhaustion
                             if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && (i * 2 + 1) < pgnExhaustionIndexRef.current) {
-                              console.log('Restoring PGN mode from black move click');
                               setPgnMode(true);
                               setComputerMode('PGN');
                               setIsEngineMode(false);
                               isEngineModeRef.current = false;
                             } else if (loadedType === 'fen' && lichessExhaustionIndexRef.current !== null && (i * 2 + 1) < lichessExhaustionIndexRef.current) {
-                              console.log('Restoring Database mode for FEN from black move click');
                               setComputerMode('Database');
                               setIsEngineMode(false);
                               isEngineModeRef.current = false;
                             } else if (loadedType === 'none' && lichessExhaustionIndexRef.current !== null && (i * 2 + 1) < lichessExhaustionIndexRef.current) {
-                              console.log('Restoring Database mode from black move click');
                               setComputerMode('Database');
                               setIsEngineMode(false);
                               isEngineModeRef.current = false;
