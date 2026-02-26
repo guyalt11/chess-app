@@ -47,6 +47,8 @@ interface Props {
     onDbMinRatingChange: (rating: number | null) => void;
     dbMaxRating: number | null;
     onDbMaxRatingChange: (rating: number | null) => void;
+    dbPercentageThreshold: number;
+    onDbPercentageThresholdChange: (threshold: number) => void;
 }
 
 // Community Slider Component
@@ -102,7 +104,9 @@ export default function SettingsModal({
     dbMinRating,
     onDbMinRatingChange,
     dbMaxRating,
-    onDbMaxRatingChange
+    onDbMaxRatingChange,
+    dbPercentageThreshold,
+    onDbPercentageThresholdChange
 }: Props) {
     if (!visible) return null;
 
@@ -202,6 +206,17 @@ export default function SettingsModal({
                         onValueChange={onDbMinGamesChange}
                         minimumValue={1}
                         maximumValue={50}
+                        step={1}
+                    />
+
+                    {/* Percentage Threshold Slider */}
+                    <CommunitySlider
+                        label="Percentage Threshold"
+                        description="Only show moves played above this percentage"
+                        value={dbPercentageThreshold}
+                        onValueChange={onDbPercentageThresholdChange}
+                        minimumValue={1}
+                        maximumValue={10}
                         step={1}
                     />
 

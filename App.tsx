@@ -102,9 +102,38 @@ function App(): React.JSX.Element {
   
   // Database settings
   const [dbMovesCount, setDbMovesCount] = useState(15);
-  const [dbMinGames, setDbMinGames] = useState(50);
+  const [dbMinGames, setDbMinGames] = useState<number>(50);
   const [dbMinRating, setDbMinRating] = useState<number | null>(null);
   const [dbMaxRating, setDbMaxRating] = useState<number | null>(null);
+  const [dbPercentageThreshold, setDbPercentageThreshold] = useState<number>(1);
+
+  // Refs for database settings
+  const dbMovesCountRef = useRef<number>(15);
+  const dbMinGamesRef = useRef<number>(50);
+  const dbMinRatingRef = useRef<number | null>(null);
+  const dbMaxRatingRef = useRef<number | null>(null);
+  const dbPercentageThresholdRef = useRef<number>(1);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    dbMovesCountRef.current = dbMovesCount;
+  }, [dbMovesCount]);
+  
+  useEffect(() => {
+    dbMinGamesRef.current = dbMinGames;
+  }, [dbMinGames]);
+  
+  useEffect(() => {
+    dbMinRatingRef.current = dbMinRating;
+  }, [dbMinRating]);
+  
+  useEffect(() => {
+    dbMaxRatingRef.current = dbMaxRating;
+  }, [dbMaxRating]);
+  
+  useEffect(() => {
+    dbPercentageThresholdRef.current = dbPercentageThreshold;
+  }, [dbPercentageThreshold]);
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -274,8 +303,18 @@ function App(): React.JSX.Element {
       const data = await response.json();
 
       const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > dbMinGames);
+      
+      // Calculate total games for percentage filtering
+      const totalGames = validMoves.reduce((sum: number, m: any) => sum + m.white + m.draws + m.black, 0);
+      
+      // Filter by percentage threshold
+      const filteredMoves = validMoves.filter((m: any) => {
+        const moveGames = m.white + m.draws + m.black;
+        const percentage = (moveGames / totalGames) * 100;
+        return percentage >= dbPercentageThresholdRef.current;
+      });
 
-      if (validMoves.length === 0) {
+      if (filteredMoves.length === 0) {
         // Track the position where Lichess was exhausted
         lichessExhaustionIndexRef.current = historyIndexRef.current;
         setComputerMode('Engine');
@@ -288,9 +327,9 @@ function App(): React.JSX.Element {
         return;
       }
 
-      // Pick a random valid move
-      const randomIndex = Math.floor(Math.random() * validMoves.length);
-      const bestMove: string = validMoves[randomIndex].uci; // e.g. "e2e4"
+      // Pick a random valid move from filtered moves
+      const randomIndex = Math.floor(Math.random() * filteredMoves.length);
+      const bestMove: string = filteredMoves[randomIndex].uci;
       const from = bestMove.substring(0, 2);
       const to = bestMove.substring(2, 4);
       const promotion = bestMove.length === 5 ? bestMove.substring(4, 5) : 'q';
@@ -815,7 +854,18 @@ function App(): React.JSX.Element {
         
         const data = await response.json();
         const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > dbMinGames);
-        const moveSanList = validMoves.map((m: any) => `${m.san} (${m.white + m.draws + m.black} games)`);
+        
+        // Calculate total games for percentage filtering
+        const totalGames = validMoves.reduce((sum: number, m: any) => sum + m.white + m.draws + m.black, 0);
+        
+        // Filter by percentage threshold
+        const filteredMoves = validMoves.filter((m: any) => {
+          const moveGames = m.white + m.draws + m.black;
+          const percentage = (moveGames / totalGames) * 100;
+          return percentage >= dbPercentageThresholdRef.current;
+        });
+        
+        const moveSanList = filteredMoves.map((m: any) => `${m.san} (${m.white + m.draws + m.black} games)`);
         setPossibleMoves(moveSanList);
         setShowPossibleMoves(true);
       } catch (error) {
@@ -1173,6 +1223,8 @@ function App(): React.JSX.Element {
           onDbMinRatingChange={setDbMinRating}
           dbMaxRating={dbMaxRating}
           onDbMaxRatingChange={setDbMaxRating}
+          dbPercentageThreshold={dbPercentageThreshold}
+          onDbPercentageThresholdChange={setDbPercentageThreshold}
         />
       </SafeAreaView>
     </View>
