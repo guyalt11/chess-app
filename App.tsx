@@ -36,6 +36,12 @@ const buildPgnTree = (pgnText: string): PgnTree => {
       const san = m.notation.notation;
       const key = norm(c.fen());
 
+      try {
+        c.move(san);
+      } catch {
+        continue;
+      }
+
       if (!tree[key]) tree[key] = new Set();
       tree[key].add(san);
 
@@ -43,12 +49,6 @@ const buildPgnTree = (pgnText: string): PgnTree => {
         for (const v of m.variations) {
           proc(v, c.fen());
         }
-      }
-
-      try {
-        c.move(san);
-      } catch {
-        break;
       }
     }
   };
@@ -99,7 +99,7 @@ function App(): React.JSX.Element {
   const loadedTypeRef = useRef<'none' | 'pgn' | 'fen'>('none');
   const pgnExhaustionIndexRef = useRef<number | null>(null); // Track when PGN was exhausted
   const lichessExhaustionIndexRef = useRef<number | null>(null); // Track when Lichess was exhausted
-  
+
   // Database settings
   const [dbMovesCount, setDbMovesCount] = useState(15);
   const [dbMinGames, setDbMinGames] = useState<number>(50);
@@ -118,19 +118,19 @@ function App(): React.JSX.Element {
   useEffect(() => {
     dbMovesCountRef.current = dbMovesCount;
   }, [dbMovesCount]);
-  
+
   useEffect(() => {
     dbMinGamesRef.current = dbMinGames;
   }, [dbMinGames]);
-  
+
   useEffect(() => {
     dbMinRatingRef.current = dbMinRating;
   }, [dbMinRating]);
-  
+
   useEffect(() => {
     dbMaxRatingRef.current = dbMaxRating;
   }, [dbMaxRating]);
-  
+
   useEffect(() => {
     dbPercentageThresholdRef.current = dbPercentageThreshold;
   }, [dbPercentageThreshold]);
@@ -224,7 +224,7 @@ function App(): React.JSX.Element {
               : fenParts.slice(0, 3).join(' ');
 
           const movesFromPgn = pgnTreeRef.current[normFen];
-          
+
           if (movesFromPgn && movesFromPgn.length > 0) {
             const san = movesFromPgn[Math.floor(Math.random() * movesFromPgn.length)];
 
@@ -276,7 +276,7 @@ function App(): React.JSX.Element {
           : fen;
       // Build URL with dynamic parameters
       let url = `https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fenForApi)}&moves=${dbMovesCount}&topGames=0&recentGames=0`;
-      
+
       // Add rating filters if specified
       if (dbMinRating !== null || dbMaxRating !== null) {
         const ratings = [];
@@ -284,9 +284,9 @@ function App(): React.JSX.Element {
         if (dbMaxRating !== null) ratings.push(dbMaxRating);
         url += `&ratings=${ratings.join(',')}`;
       }
-      
+
       const response = await fetch(url);
-      
+
       // Check for rate limiting
       if (response.status === 429) {
         console.log('Lichess API rate limit exceeded.');
@@ -299,14 +299,14 @@ function App(): React.JSX.Element {
         engine.send('go movetime 1000');
         return;
       }
-      
+
       const data = await response.json();
 
       const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > dbMinGames);
-      
+
       // Calculate total games for percentage filtering
       const totalGames = validMoves.reduce((sum: number, m: any) => sum + m.white + m.draws + m.black, 0);
-      
+
       // Filter by percentage threshold
       const filteredMoves = validMoves.filter((m: any) => {
         const moveGames = m.white + m.draws + m.black;
@@ -420,11 +420,11 @@ function App(): React.JSX.Element {
     isReviewingRef.current = false;
     setIsEngineMode(false); // Reset to DB mode on new game
     isEngineModeRef.current = false;
-    
+
     // Clear exhaustion tracking on reset
     pgnExhaustionIndexRef.current = null;
     lichessExhaustionIndexRef.current = null;
-    
+
     // Reset to appropriate position based on what's loaded
     if (loadedType === 'pgn' && pgnTree) {
       // Reset to starting position with PGN
@@ -518,11 +518,11 @@ function App(): React.JSX.Element {
       loadedTypeRef.current = 'pgn';
       setIsEngineMode(false); // Ensure we're not in engine mode when loading PGN
       isEngineModeRef.current = false;
-      
+
       // Reset exhaustion tracking when loading new PGN
       pgnExhaustionIndexRef.current = null;
       lichessExhaustionIndexRef.current = null;
-      
+
       // Reset the board to starting position manually (don't call handleReset to avoid mode conflicts)
       currentFenRef.current = 'startpos';
       startFenRef.current = 'startpos';
@@ -532,14 +532,14 @@ function App(): React.JSX.Element {
       setMoveHistory([]);
       historyIndexRef.current = -1;
       isReviewingRef.current = false;
-      
+
       boardRef.current?.reset();
       engine.send('ucinewgame');
       engine.send('isready');
       engine.send('position startpos');
-            
+
       triggerComputerIfItsTurn('w', 'startpos');
-      
+
       Alert.alert('Success', 'PGN loaded. Board reset. Computer will play from this PGN.');
       setIsPgnModalVisible(false);
       setPgnInput('');
@@ -594,7 +594,7 @@ function App(): React.JSX.Element {
         historyIndexRef.current = -1;
         return prev;
       }
-      
+
       // Use the actual current index directly — never derive from -1 to prev.length-1 here
       const currentIdx = historyIndexRef.current;
       const newIdx = Math.max(-1, currentIdx - 2);
@@ -608,7 +608,7 @@ function App(): React.JSX.Element {
         boardRef.current?.setFen(targetFen);
         setTurn(t);
         turnRef.current = t;
-        
+
         // Check if we should restore PGN or Lichess mode
         if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && newIdx < pgnExhaustionIndexRef.current) {
           setPgnMode(true);
@@ -624,7 +624,7 @@ function App(): React.JSX.Element {
           setIsEngineMode(false);
           isEngineModeRef.current = false;
         }
-        
+
         evalPositionOnly(targetFen, t);
       } else {
         // Back to the game's starting position (could be a loaded FEN, not necessarily standard start)
@@ -642,7 +642,7 @@ function App(): React.JSX.Element {
         const startTurn = startFen === 'startpos' ? 'w' : (startFen.split(' ')[1] || 'w') as 'w' | 'b';
         setTurn(startTurn);
         turnRef.current = startTurn;
-        
+
         // Always restore appropriate mode when going back to start
         if (loadedType === 'pgn' && pgnTree) {
           setPgnMode(true);
@@ -664,14 +664,14 @@ function App(): React.JSX.Element {
           // Default to Database mode when nothing is loaded
           setComputerMode('Database');
         }
-        
+
         evalPositionOnly(startFen === 'startpos' ? 'startpos' : startFen, startTurn);
       }
       return prev;
     });
   };
 
-  const handleStepForward = () => {    
+  const handleStepForward = () => {
     // Set review mode synchronously BEFORE anything async
     isReviewingRef.current = true;
     setShowPossibleMoves(false); // Hide moves modal when navigating forward
@@ -684,41 +684,41 @@ function App(): React.JSX.Element {
         historyIndexRef.current = -1;
         return [];
       }
-      
+
       // Check if there's any history to navigate
       if (prev.length === 0) {
         isReviewingRef.current = false;
         historyIndexRef.current = -1;
         return prev;
       }
-      
+
       const currentIdx = historyIndexRef.current;
-      
+
       // If we're at the latest position (-1), we can't go forward
       if (currentIdx === -1) {
         isReviewingRef.current = false;
         historyIndexRef.current = -1;
         return prev;
       }
-      
+
       // If we're at or past the last move, go to latest position
       if (currentIdx >= prev.length - 1) {
         isReviewingRef.current = false;
         historyIndexRef.current = -1; // Go to latest position
         const latestFen = prev[prev.length - 1]?.fen || 'startpos';
         currentFenRef.current = latestFen;
-        
+
         // Update board to latest position
         boardRef.current?.setFen(latestFen);
         const latestTurn = (latestFen.split(' ')[1] || 'w') as 'w' | 'b';
         setTurn(latestTurn);
         turnRef.current = latestTurn;
-        
+
         // DON'T trigger computer immediately - let the normal flow handle it
         // triggerComputerIfItsTurn(latestTurn, latestFen);
         return prev;
       }
-      
+
       // Move 2 half-moves forward, clamped to the last available move
       const newIdx = Math.min(prev.length - 1, currentIdx + 2);
       historyIndexRef.current = newIdx;
@@ -737,7 +737,7 @@ function App(): React.JSX.Element {
           evalPositionOnly(targetFen, t);
         }
       }
-      
+
       setIsSettingsVisible(false);
       return prev; // Always return the array
     });
@@ -746,7 +746,7 @@ function App(): React.JSX.Element {
   const handleEloChange = (elo: number) => {
     botEloRef.current = elo;
     setBotElo(elo); // Update the state to reflect in settings
-    
+
     // Apply ELO settings to engine
     if (elo === 3500) {
       // Stockfish mode - disable Elo limit for maximum strength
@@ -758,7 +758,7 @@ function App(): React.JSX.Element {
       engine.send(`setoption name UCI_Elo value ${elo}`);
       engine.send('isready');
     }
-    
+
     // Reset game so new ELO takes effect cleanly, but preserve loaded content
     if (loadedType === 'pgn') {
       // For PGN, reset to starting position with PGN mode preserved
@@ -770,12 +770,12 @@ function App(): React.JSX.Element {
       setMoveHistory([]);
       historyIndexRef.current = -1;
       isReviewingRef.current = false;
-      
+
       boardRef.current?.reset();
       engine.send('ucinewgame');
       engine.send('isready');
       engine.send('position startpos');
-      
+
       setTimeout(() => {
         triggerComputerIfItsTurn('w', 'startpos');
       }, 500);
@@ -793,7 +793,7 @@ function App(): React.JSX.Element {
     setComputerMode('Database');
     setIsEngineMode(false);
     isEngineModeRef.current = false;
-    
+
     // Reset to normal starting position
     currentFenRef.current = 'startpos';
     startFenRef.current = 'startpos';
@@ -803,17 +803,17 @@ function App(): React.JSX.Element {
     setMoveHistory([]);
     historyIndexRef.current = -1;
     isReviewingRef.current = false;
-    
+
     // Clear exhaustion tracking
     pgnExhaustionIndexRef.current = null;
     lichessExhaustionIndexRef.current = null;
-    
+
     // Reset board
     boardRef.current?.reset();
     engine.send('ucinewgame');
     engine.send('isready');
     engine.send('position startpos');
-    
+
     // Check if computer should move
     triggerComputerIfItsTurn('w', 'startpos');
   };
@@ -826,13 +826,13 @@ function App(): React.JSX.Element {
     } else {
       currentFen = currentFenRef.current;
     }
-    
+
     if (loadedType === 'pgn' && pgnTree) {
       // Get PGN moves for current position
       const normFen = currentFen === 'startpos'
         ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq'
         : currentFen.split(' ').slice(0, 3).join(' ');
-      
+
       const moves = pgnTree[normFen] || [];
       setPossibleMoves(moves);
       setShowPossibleMoves(true);
@@ -844,7 +844,7 @@ function App(): React.JSX.Element {
           : currentFen;
         // Build URL with dynamic parameters
         let url = `https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fenForApi)}&moves=${dbMovesCount}&topGames=0&recentGames=0`;
-        
+
         // Add rating filters if specified
         if (dbMinRating !== null || dbMaxRating !== null) {
           const ratings = [];
@@ -853,26 +853,26 @@ function App(): React.JSX.Element {
           url += `&ratings=${ratings.join(',')}`;
         }
         const response = await fetch(url);
-        
+
         if (response.status === 429) {
           setPossibleMoves(['Rate limit exceeded']);
           setShowPossibleMoves(true);
           return;
         }
-        
+
         const data = await response.json();
         const validMoves = (data.moves || []).filter((m: any) => (m.white + m.draws + m.black) > dbMinGames);
-        
+
         // Calculate total games for percentage filtering
         const totalGames = validMoves.reduce((sum: number, m: any) => sum + m.white + m.draws + m.black, 0);
-        
+
         // Filter by percentage threshold
         const filteredMoves = validMoves.filter((m: any) => {
           const moveGames = m.white + m.draws + m.black;
           const percentage = (moveGames / totalGames) * 100;
           return percentage >= dbPercentageThresholdRef.current;
         });
-        
+
         const moveSanList = filteredMoves.map((m: any) => `${m.san} (${m.white + m.draws + m.black} games)`);
         setPossibleMoves(moveSanList);
         setShowPossibleMoves(true);
@@ -909,7 +909,7 @@ function App(): React.JSX.Element {
               Computer: {computerMode}
             </Text>
           </View>
-          
+
           <View style={styles.boardContainer}>
             <ChessBoardWebView
               ref={boardRef}
@@ -967,7 +967,7 @@ function App(): React.JSX.Element {
                             setTurn(t);
                             turnRef.current = t;
                             setShowPossibleMoves(false); // Hide moves modal when navigating
-                            
+
                             // Restore appropriate mode based on loaded type and exhaustion
                             if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && i * 2 < pgnExhaustionIndexRef.current) {
                               setPgnMode(true);
@@ -1003,7 +1003,7 @@ function App(): React.JSX.Element {
                             setTurn(t);
                             turnRef.current = t;
                             setShowPossibleMoves(false); // Hide moves modal when navigating
-                            
+
                             // Restore appropriate mode based on loaded type and exhaustion
                             if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && (i * 2 + 1) < pgnExhaustionIndexRef.current) {
                               setPgnMode(true);
@@ -1041,58 +1041,58 @@ function App(): React.JSX.Element {
         </View>
 
         {!isSettingsVisible && (
-        <View style={styles.controls}>
-          <TouchableOpacity
-            style={[styles.actionIcon, { backgroundColor: '#E3B23C', shadowColor: '#E3B23C' }]}
-            onPress={handleReset}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.actionIconText}>↺</Text>
-          </TouchableOpacity>
-          <View style={{ width: 16 }} />
-          <TouchableOpacity
-            style={[styles.actionIcon, { backgroundColor: '#3F8F88', shadowColor: '#3F8F88' }]}
-            onPress={handleFlip}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.actionIconText}>⇅</Text>
-          </TouchableOpacity>
-          <View style={{ width: 16 }} />
-          <TouchableOpacity
-            style={[
-              styles.fenButtonSmall, 
-              loadedType === 'fen' ? { backgroundColor: '#E74C3C', shadowColor: '#E74C3C' } : {}
-            ]}
-            onPress={loadedType === 'fen' ? handleClearLoaded : () => setIsFenModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.fenButtonTextSmall}>
-              {loadedType === 'fen' ? '✕' : 'FEN'}
-            </Text>
-          </TouchableOpacity>
-          <View style={{ width: 8 }} />
-          <TouchableOpacity
-            style={[
-              styles.fenButtonSmall,
-              loadedType === 'pgn' ? { backgroundColor: '#E74C3C', shadowColor: '#E74C3C' } : {}
-            ]}
-            onPress={loadedType === 'pgn' ? handleClearLoaded : () => setIsPgnModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.fenButtonTextSmall}>
-              {loadedType === 'pgn' ? '✕' : 'PGN'}
-            </Text>
-          </TouchableOpacity>
-          <View style={{ width: 8 }} />
-          <TouchableOpacity
-            style={[styles.fenButtonSmall, { backgroundColor: '#9C27B0', shadowColor: '#9C27B0' }]}
-            onPressIn={handleShowPossibleMoves}
-            onPressOut={() => setShowPossibleMoves(false)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.fenButtonTextSmall}>Moves</Text>
-          </TouchableOpacity>
-        </View>
+          <View style={styles.controls}>
+            <TouchableOpacity
+              style={[styles.actionIcon, { backgroundColor: '#E3B23C', shadowColor: '#E3B23C' }]}
+              onPress={handleReset}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.actionIconText}>↺</Text>
+            </TouchableOpacity>
+            <View style={{ width: 16 }} />
+            <TouchableOpacity
+              style={[styles.actionIcon, { backgroundColor: '#3F8F88', shadowColor: '#3F8F88' }]}
+              onPress={handleFlip}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.actionIconText}>⇅</Text>
+            </TouchableOpacity>
+            <View style={{ width: 16 }} />
+            <TouchableOpacity
+              style={[
+                styles.fenButtonSmall,
+                loadedType === 'fen' ? { backgroundColor: '#E74C3C', shadowColor: '#E74C3C' } : {}
+              ]}
+              onPress={loadedType === 'fen' ? handleClearLoaded : () => setIsFenModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.fenButtonTextSmall}>
+                {loadedType === 'fen' ? '✕' : 'FEN'}
+              </Text>
+            </TouchableOpacity>
+            <View style={{ width: 8 }} />
+            <TouchableOpacity
+              style={[
+                styles.fenButtonSmall,
+                loadedType === 'pgn' ? { backgroundColor: '#E74C3C', shadowColor: '#E74C3C' } : {}
+              ]}
+              onPress={loadedType === 'pgn' ? handleClearLoaded : () => setIsPgnModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.fenButtonTextSmall}>
+                {loadedType === 'pgn' ? '✕' : 'PGN'}
+              </Text>
+            </TouchableOpacity>
+            <View style={{ width: 8 }} />
+            <TouchableOpacity
+              style={[styles.fenButtonSmall, { backgroundColor: '#9C27B0', shadowColor: '#9C27B0' }]}
+              onPressIn={handleShowPossibleMoves}
+              onPressOut={() => setShowPossibleMoves(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.fenButtonTextSmall}>Moves</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Promotion Selection Modal */}

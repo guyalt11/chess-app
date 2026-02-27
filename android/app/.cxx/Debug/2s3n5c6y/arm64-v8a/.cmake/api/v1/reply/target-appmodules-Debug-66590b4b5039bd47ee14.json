@@ -268,15 +268,15 @@
 	[
 		{
 			"backtrace" : 4,
+			"id" : "react_codegen_safeareacontext::@7984cd80db47aa7b952a"
+		},
+		{
+			"backtrace" : 4,
 			"id" : "react_codegen_RNCWebViewSpec::@eb48929f9f7453740a6c"
 		},
 		{
 			"backtrace" : 4,
 			"id" : "react_codegen_RNCSlider::@4898bc4726ecf1751b6a"
-		},
-		{
-			"backtrace" : 4,
-			"id" : "react_codegen_safeareacontext::@7984cd80db47aa7b952a"
 		}
 	],
 	"id" : "appmodules::@6890427a1f51a3e7e1df",
