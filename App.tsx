@@ -36,12 +36,6 @@ const buildPgnTree = (pgnText: string): PgnTree => {
       const san = m.notation.notation;
       const key = norm(c.fen());
 
-      try {
-        c.move(san);
-      } catch {
-        continue;
-      }
-
       if (!tree[key]) tree[key] = new Set();
       tree[key].add(san);
 
@@ -49,6 +43,12 @@ const buildPgnTree = (pgnText: string): PgnTree => {
         for (const v of m.variations) {
           proc(v, c.fen());
         }
+      }
+
+      try {
+        c.move(san);
+      } catch {
+        continue;
       }
     }
   };
@@ -67,13 +67,13 @@ const buildPgnTree = (pgnText: string): PgnTree => {
 function App(): React.JSX.Element {
   const boardRef = useRef<ChessBoardWebViewRef>(null);
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
-  const [evaluation, setEvaluation] = useState<number>(0); // 0 is balanced
+  const [evaluation, setEvaluation] = useState<number>(0.2);
   const [turn, setTurn] = useState<'w' | 'b'>('w');
   const turnRef = useRef<'w' | 'b'>('w');
   const [computerColor, setComputerColor] = useState<'w' | 'b'>('b');
   const computerColorRef = useRef<'w' | 'b'>('b');
   const currentFenRef = useRef<string>('startpos');
-  const startFenRef = useRef<string>('startpos'); // The position the current game started from
+  const startFenRef = useRef<string>('startpos');
   const [promotionData, setPromotionData] = useState<{ from: string; to: string } | null>(null);
   const [isFenModalVisible, setIsFenModalVisible] = useState(false);
   const [fenInput, setFenInput] = useState('');
@@ -81,7 +81,6 @@ function App(): React.JSX.Element {
   const [pgnInput, setPgnInput] = useState('');
   const [pgnTree, setPgnTree] = useState<PgnTree | null>(null);
   const pgnTreeRef = useRef<PgnTree | null>(null);
-  const [pgnMode, setPgnMode] = useState(false);
   const [moveHistory, setMoveHistory] = useState<{ san: string; fen: string }[]>([]);
   const historyIndexRef = useRef<number>(-1); // -1 means at latest position
   const isReviewingRef = useRef<boolean>(false);
@@ -90,8 +89,6 @@ function App(): React.JSX.Element {
   const botEloRef = useRef<number>(1500);
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const isEvalOnlyRef = useRef<boolean>(false); // evaluate only, don't play bestmove
-  const [isEngineMode, setIsEngineMode] = useState(false);
-  const isEngineModeRef = useRef(false);
   const [computerMode, setComputerMode] = useState<'Database' | 'PGN' | 'Engine'>('Database');
   const [showPossibleMoves, setShowPossibleMoves] = useState(false);
   const [possibleMoves, setPossibleMoves] = useState<string[]>([]);
@@ -106,34 +103,6 @@ function App(): React.JSX.Element {
   const [dbMinRating, setDbMinRating] = useState<number | null>(null);
   const [dbMaxRating, setDbMaxRating] = useState<number | null>(null);
   const [dbPercentageThreshold, setDbPercentageThreshold] = useState<number>(1);
-
-  // Refs for database settings
-  const dbMovesCountRef = useRef<number>(15);
-  const dbMinGamesRef = useRef<number>(50);
-  const dbMinRatingRef = useRef<number | null>(null);
-  const dbMaxRatingRef = useRef<number | null>(null);
-  const dbPercentageThresholdRef = useRef<number>(1);
-
-  // Keep refs in sync with state
-  useEffect(() => {
-    dbMovesCountRef.current = dbMovesCount;
-  }, [dbMovesCount]);
-
-  useEffect(() => {
-    dbMinGamesRef.current = dbMinGames;
-  }, [dbMinGames]);
-
-  useEffect(() => {
-    dbMinRatingRef.current = dbMinRating;
-  }, [dbMinRating]);
-
-  useEffect(() => {
-    dbMaxRatingRef.current = dbMaxRating;
-  }, [dbMaxRating]);
-
-  useEffect(() => {
-    dbPercentageThresholdRef.current = dbPercentageThreshold;
-  }, [dbPercentageThreshold]);
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -150,11 +119,11 @@ function App(): React.JSX.Element {
 
             if (scoreIndex !== -1) {
               let score = parseInt(parts[scoreIndex + 1], 10) / 100;
-              // Use turnRef for latest value
+              // engine returns score from player's perspective (when it's the computer's move) 
               setEvaluation(turnRef.current === 'w' ? score : -score);
             } else if (mateIndex !== -1) {
               const mateIn = parseInt(parts[mateIndex + 1], 10);
-              const score = mateIn > 0 ? 10 : -10;
+              const score = mateIn > 0 ? 100 : -100;
               setEvaluation(turnRef.current === 'w' ? score : -score);
             }
           }
@@ -197,7 +166,6 @@ function App(): React.JSX.Element {
         });
 
         engine.send('uci');
-        // Apply ELO limit on startup
         engine.send('setoption name UCI_LimitStrength value true');
         engine.send(`setoption name UCI_Elo value ${botEloRef.current}`);
         engine.send('isready');
@@ -208,7 +176,7 @@ function App(): React.JSX.Element {
 
     setupEngine();
     return () => engine.stop();
-  }, []); // Run once on mount
+  }, []);
 
   // Consolidate computer move trigger into a helper
   const triggerComputerIfItsTurn = (currentTurn: 'w' | 'b', currentFen: string) => {
@@ -247,14 +215,11 @@ function App(): React.JSX.Element {
             // Track the position where PGN was exhausted
             pgnExhaustionIndexRef.current = historyIndexRef.current;
             setComputerMode('Engine');
-            setPgnMode(false);
-            setIsEngineMode(true);
-            isEngineModeRef.current = true;
           }
         }
 
         // 2) Fallback: DB/engine logic as before
-        if (isEngineModeRef.current) {
+        if (computerMode === 'Engine') {
           // Engine mode: let Stockfish decide
           const pos = currentFen === 'startpos' ? 'startpos' : `fen ${currentFen}`;
           engine.send(`position ${pos}`);
@@ -292,9 +257,7 @@ function App(): React.JSX.Element {
         console.log('Lichess API rate limit exceeded.');
         console.log(url);
         setComputerMode('Engine');
-        setIsEngineMode(true);
-        isEngineModeRef.current = true;
-        const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
+                const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
         engine.send(`position ${pos}`);
         engine.send('go movetime 1000');
         return;
@@ -311,16 +274,14 @@ function App(): React.JSX.Element {
       const filteredMoves = validMoves.filter((m: any) => {
         const moveGames = m.white + m.draws + m.black;
         const percentage = (moveGames / totalGames) * 100;
-        return percentage >= dbPercentageThresholdRef.current;
+        return percentage >= dbPercentageThreshold;
       });
 
       if (filteredMoves.length === 0) {
         // Track the position where Lichess was exhausted
         lichessExhaustionIndexRef.current = historyIndexRef.current;
         setComputerMode('Engine');
-        setIsEngineMode(true);
-        isEngineModeRef.current = true;
-        // Fallback to engine
+                // Fallback to engine
         const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
         engine.send(`position ${pos}`);
         engine.send('go movetime 1000');
@@ -357,25 +318,24 @@ function App(): React.JSX.Element {
       // Check if it's a rate limit error
       if (error instanceof Error && error.message.includes('429')) {
         console.log('Rate limit error in catch block');
-        setComputerMode('Engine');
       } else {
         console.log('Connection error in catch block');
-        setComputerMode('Engine');
       }
-      setIsEngineMode(true);
-      isEngineModeRef.current = true;
+      setComputerMode('Engine');
       const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
       engine.send(`position ${pos}`);
+      //TODO: modular calc time
       engine.send('go movetime 1000');
     }
   };
 
-  // Evaluate a position without playing a move (used during history navigation)
+  // Evaluate a position without playing a move
   const evalPositionOnly = (fen: string, turn: 'w' | 'b') => {
     isEvalOnlyRef.current = true;
     turnRef.current = turn;
     const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
     engine.send(`position ${pos}`);
+    //TODO: add settings for depth
     engine.send('go depth 12');
   };
 
@@ -418,8 +378,6 @@ function App(): React.JSX.Element {
     setMoveHistory([]);
     historyIndexRef.current = -1;
     isReviewingRef.current = false;
-    setIsEngineMode(false); // Reset to DB mode on new game
-    isEngineModeRef.current = false;
 
     // Clear exhaustion tracking on reset
     pgnExhaustionIndexRef.current = null;
@@ -431,7 +389,6 @@ function App(): React.JSX.Element {
       currentFenRef.current = 'startpos';
       startFenRef.current = 'startpos';
       setComputerMode('PGN');
-      setPgnMode(true);
       boardRef.current?.reset();
       engine.send('ucinewgame');
       engine.send('isready');
@@ -454,7 +411,6 @@ function App(): React.JSX.Element {
       currentFenRef.current = 'startpos';
       startFenRef.current = 'startpos';
       setComputerMode('Database');
-      setPgnMode(false);
       boardRef.current?.reset();
       engine.send('ucinewgame');
       engine.send('isready');
@@ -512,12 +468,9 @@ function App(): React.JSX.Element {
 
       setPgnTree(tree);
       pgnTreeRef.current = tree;
-      setPgnMode(true);
       setComputerMode('PGN');
       setLoadedType('pgn');
       loadedTypeRef.current = 'pgn';
-      setIsEngineMode(false); // Ensure we're not in engine mode when loading PGN
-      isEngineModeRef.current = false;
 
       // Reset exhaustion tracking when loading new PGN
       pgnExhaustionIndexRef.current = null;
@@ -564,8 +517,6 @@ function App(): React.JSX.Element {
     setMoveHistory([]);
     historyIndexRef.current = -1;
     isReviewingRef.current = false;
-    setIsEngineMode(false); // Reset mode on new position
-    isEngineModeRef.current = false;
     setLoadedType('fen');
     setComputerMode('Database'); // FEN positions use Database mode by default
 
@@ -611,18 +562,11 @@ function App(): React.JSX.Element {
 
         // Check if we should restore PGN or Lichess mode
         if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && newIdx < pgnExhaustionIndexRef.current) {
-          setPgnMode(true);
           setComputerMode('PGN');
-          setIsEngineMode(false);
-          isEngineModeRef.current = false;
         } else if (loadedType === 'fen' && lichessExhaustionIndexRef.current !== null && newIdx < lichessExhaustionIndexRef.current) {
           setComputerMode('Database');
-          setIsEngineMode(false);
-          isEngineModeRef.current = false;
         } else if (loadedType === 'none' && lichessExhaustionIndexRef.current !== null && newIdx < lichessExhaustionIndexRef.current) {
           setComputerMode('Database');
-          setIsEngineMode(false);
-          isEngineModeRef.current = false;
         }
 
         evalPositionOnly(targetFen, t);
@@ -645,20 +589,13 @@ function App(): React.JSX.Element {
 
         // Always restore appropriate mode when going back to start
         if (loadedType === 'pgn' && pgnTree) {
-          setPgnMode(true);
           setComputerMode('PGN');
-          setIsEngineMode(false);
-          isEngineModeRef.current = false;
           pgnExhaustionIndexRef.current = null; // Reset exhaustion tracking
         } else if (loadedType === 'fen') {
           setComputerMode('Database');
-          setIsEngineMode(false);
-          isEngineModeRef.current = false;
           lichessExhaustionIndexRef.current = null; // Reset exhaustion tracking
         } else if (lichessExhaustionIndexRef.current !== null) {
           setComputerMode('Database');
-          setIsEngineMode(false);
-          isEngineModeRef.current = false;
           lichessExhaustionIndexRef.current = null; // Reset exhaustion tracking
         } else {
           // Default to Database mode when nothing is loaded
@@ -766,7 +703,7 @@ function App(): React.JSX.Element {
       startFenRef.current = 'startpos';
       setTurn('w');
       turnRef.current = 'w';
-      setEvaluation(0);
+      setEvaluation(0.2);
       setMoveHistory([]);
       historyIndexRef.current = -1;
       isReviewingRef.current = false;
@@ -788,18 +725,15 @@ function App(): React.JSX.Element {
   const handleClearLoaded = () => {
     // Clear all loaded content
     setPgnTree(null);
-    setPgnMode(false);
     setLoadedType('none');
     setComputerMode('Database');
-    setIsEngineMode(false);
-    isEngineModeRef.current = false;
 
     // Reset to normal starting position
     currentFenRef.current = 'startpos';
     startFenRef.current = 'startpos';
     setTurn('w');
     turnRef.current = 'w';
-    setEvaluation(0);
+    setEvaluation(0.2);
     setMoveHistory([]);
     historyIndexRef.current = -1;
     isReviewingRef.current = false;
@@ -870,7 +804,7 @@ function App(): React.JSX.Element {
         const filteredMoves = validMoves.filter((m: any) => {
           const moveGames = m.white + m.draws + m.black;
           const percentage = (moveGames / totalGames) * 100;
-          return percentage >= dbPercentageThresholdRef.current;
+          return percentage >= dbPercentageThreshold;
         });
 
         const moveSanList = filteredMoves.map((m: any) => `${m.san} (${m.white + m.draws + m.black} games)`);
@@ -970,18 +904,11 @@ function App(): React.JSX.Element {
 
                             // Restore appropriate mode based on loaded type and exhaustion
                             if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && i * 2 < pgnExhaustionIndexRef.current) {
-                              setPgnMode(true);
                               setComputerMode('PGN');
-                              setIsEngineMode(false);
-                              isEngineModeRef.current = false;
                             } else if (loadedType === 'fen' && lichessExhaustionIndexRef.current !== null && i * 2 < lichessExhaustionIndexRef.current) {
                               setComputerMode('Database');
-                              setIsEngineMode(false);
-                              isEngineModeRef.current = false;
                             } else if (loadedType === 'none' && lichessExhaustionIndexRef.current !== null && i * 2 < lichessExhaustionIndexRef.current) {
                               setComputerMode('Database');
-                              setIsEngineMode(false);
-                              isEngineModeRef.current = false;
                             }
                           }}
                         >
@@ -1006,18 +933,11 @@ function App(): React.JSX.Element {
 
                             // Restore appropriate mode based on loaded type and exhaustion
                             if (loadedType === 'pgn' && pgnExhaustionIndexRef.current !== null && (i * 2 + 1) < pgnExhaustionIndexRef.current) {
-                              setPgnMode(true);
                               setComputerMode('PGN');
-                              setIsEngineMode(false);
-                              isEngineModeRef.current = false;
                             } else if (loadedType === 'fen' && lichessExhaustionIndexRef.current !== null && (i * 2 + 1) < lichessExhaustionIndexRef.current) {
                               setComputerMode('Database');
-                              setIsEngineMode(false);
-                              isEngineModeRef.current = false;
                             } else if (loadedType === 'none' && lichessExhaustionIndexRef.current !== null && (i * 2 + 1) < lichessExhaustionIndexRef.current) {
                               setComputerMode('Database');
-                              setIsEngineMode(false);
-                              isEngineModeRef.current = false;
                             }
                           }}
                         >
