@@ -94,6 +94,8 @@ function App(): React.JSX.Element {
   const [possibleMoves, setPossibleMoves] = useState<string[]>([]);
   const [loadedType, setLoadedType] = useState<'none' | 'pgn' | 'fen'>('none');
   const loadedTypeRef = useRef<'none' | 'pgn' | 'fen'>('none');
+  const engineMoveCaptureRef = useRef<string[]>([]);
+  const isEngineAnalysisRequestedRef = useRef<boolean>(false);
   const pgnExhaustionIndexRef = useRef<number | null>(null); // Track when PGN was exhausted
   const lichessExhaustionIndexRef = useRef<number | null>(null); // Track when Lichess was exhausted
 
@@ -111,13 +113,14 @@ function App(): React.JSX.Element {
         await engine.start();
 
         engine.onOutput((line) => {
+          console.log(line)
           // Parse Evaluation Score
           if (line.includes('score cp') || line.includes('score mate')) {
             const parts = line.split(' ');
             const scoreIndex = parts.indexOf('cp');
             const mateIndex = parts.indexOf('mate');
             const turnFromEngine = line.includes(' w ') ? 'w' : line.includes(' b ') ? 'b' : turnRef.current;
-            
+
             if (scoreIndex !== -1) {
               let score = parseInt(parts[scoreIndex + 1], 10) / 100;
               // engine returns score from player's perspective (when it's the computer's move) 
@@ -127,17 +130,54 @@ function App(): React.JSX.Element {
               const score = mateIn > 0 ? 100 : -100;
               setEvaluation(turnFromEngine === 'w' ? score : -score);
             }
-          }
+            
+            // Capture engine moves for suggestions (when using multipv AND explicitly requested)
+            if (isEngineAnalysisRequestedRef.current) {
+              const multipvIndex = parts.indexOf('multipv');
+              const pvIndex = parts.indexOf('pv');
 
+              if (multipvIndex !== -1 && pvIndex !== -1) {
+                const multipvNumber = parseInt(parts[multipvIndex + 1], 10); // 1, 2, or 3
+                const uciMove = parts[pvIndex + 1];
+
+                if (uciMove && multipvNumber >= 1 && multipvNumber <= 3) {
+                  // Convert UCI to SAN using chess.js
+                  try {
+                    const currentFen = currentFenRef.current === 'startpos' 
+                      ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+                      : currentFenRef.current;
+                    const chess = new Chess(currentFen);
+                    const move = chess.move({
+                      from: uciMove.substring(0, 2),
+                      to: uciMove.substring(2, 4),
+                      promotion: uciMove.length === 5 ? uciMove.substring(4, 5) : undefined
+                    });
+                    
+                    if (move && move.san) {
+                      engineMoveCaptureRef.current[multipvNumber - 1] = move.san;
+                      setPossibleMoves(engineMoveCaptureRef.current);
+                      setShowPossibleMoves(true);
+                    }
+                  } catch (error) {
+                    // If conversion fails, use UCI as fallback
+                    engineMoveCaptureRef.current[multipvNumber - 1] = uciMove;
+                    setPossibleMoves(engineMoveCaptureRef.current);
+                    setShowPossibleMoves(true);
+                  }
+                }
+              }
+            }
+          }
+          
+          // Swallow bestmove if we're doing eval-only or in review mode
+          if (isEvalOnlyRef.current) {
+            isEvalOnlyRef.current = false;
+            return;
+          }
+          if (isReviewingRef.current) {
+            return; // Leftover engine search from before navigation started
+          }
           if (line.startsWith('bestmove')) {
-            // Swallow bestmove if we're doing eval-only or in review mode
-            if (isEvalOnlyRef.current) {
-              isEvalOnlyRef.current = false;
-              return;
-            }
-            if (isReviewingRef.current) {
-              return; // Leftover engine search from before navigation started
-            }
             const move = line.split(' ')[1];
             if (move) {
               const from = move.substring(0, 2);
@@ -161,7 +201,10 @@ function App(): React.JSX.Element {
                   }
                 }
               `;
-              boardRef.current?.injectJavaScript?.(script);
+
+              if (!isEngineAnalysisRequestedRef.current) {
+                boardRef.current?.injectJavaScript?.(script);
+              }
             }
           }
         });
@@ -749,7 +792,7 @@ function App(): React.JSX.Element {
       currentFen = currentFenRef.current;
     }
 
-    if (loadedType === 'pgn' && pgnTree) {
+    if (computerMode === 'PGN' && pgnTree) {
       const normFen = currentFen === 'startpos'
         ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq'
         : currentFen.split(' ').slice(0, 3).join(' ');
@@ -757,7 +800,7 @@ function App(): React.JSX.Element {
       const moves = pgnTree[normFen] || [];
       setPossibleMoves(moves);
       setShowPossibleMoves(true);
-    } else if (loadedType === 'fen' || loadedType === 'none') {
+    } else if (computerMode === 'Database') {
       try {
         const fenForApi = currentFen === 'startpos'
           ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -801,10 +844,10 @@ function App(): React.JSX.Element {
         setShowPossibleMoves(true);
       }
     } else {
-      //TODO: Add engine moves
-      // Engine mode - show message
-      setPossibleMoves(['Engine mode - no opening book']);
-      setShowPossibleMoves(true);
+      const pos = currentFenRef.current === 'startpos' ? 'startpos' : `fen ${currentFenRef.current}`;
+      engine.send(`position ${pos}`);
+      //TODO: depth should be adjustable in Settings
+      engine.send('go depth 20');
     }
   };
 
@@ -993,8 +1036,23 @@ function App(): React.JSX.Element {
             <View style={{ width: 8 }} />
             <TouchableOpacity
               style={[styles.fenButtonSmall, { backgroundColor: '#9C27B0', shadowColor: '#9C27B0' }]}
-              onPressIn={handleShowPossibleMoves}
-              onPressOut={() => setShowPossibleMoves(false)}
+              onPressIn={() => {
+                if (computerMode === 'Engine') {
+                  engine.send('setoption name MultiPV value 3');
+                  isEngineAnalysisRequestedRef.current = true;
+                  engineMoveCaptureRef.current = []
+                }
+                
+                handleShowPossibleMoves();
+              }}
+              onPressOut={() => {
+                if (computerMode === 'Engine') {
+                  engine.send('setoption name MultiPV value 1');
+                  isEngineAnalysisRequestedRef.current = false;
+                  engineMoveCaptureRef.current = []
+                }
+                setShowPossibleMoves(false);
+              }}
               activeOpacity={0.7}
             >
               <Text style={styles.fenButtonTextSmall}>Moves</Text>
