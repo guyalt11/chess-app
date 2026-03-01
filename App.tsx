@@ -135,12 +135,23 @@ function App(): React.JSX.Element {
             if (isEngineAnalysisRequestedRef.current) {
               const multipvIndex = parts.indexOf('multipv');
               const pvIndex = parts.indexOf('pv');
+              const scoreIndex = parts.indexOf('cp');
+              const mateIndex = parts.indexOf('mate');
 
               if (multipvIndex !== -1 && pvIndex !== -1) {
                 const multipvNumber = parseInt(parts[multipvIndex + 1], 10); // 1, 2, or 3
                 const uciMove = parts[pvIndex + 1];
 
                 if (uciMove && multipvNumber >= 1 && multipvNumber <= 3) {
+                  // Get evaluation score
+                  let evalScore = 0;
+                  if (scoreIndex !== -1) {
+                    evalScore = parseInt(parts[scoreIndex + 1], 10) / 100;
+                  } else if (mateIndex !== -1) {
+                    const mateIn = parseInt(parts[mateIndex + 1], 10);
+                    evalScore = mateIn > 0 ? 100 : -100;
+                  }
+
                   // Convert UCI to SAN using chess.js
                   try {
                     const currentFen = currentFenRef.current === 'startpos' 
@@ -154,13 +165,18 @@ function App(): React.JSX.Element {
                     });
                     
                     if (move && move.san) {
-                      engineMoveCaptureRef.current[multipvNumber - 1] = move.san;
+                      // Format evaluation with proper sign and display
+                      const formattedEval = evalScore > 0 ? `+${evalScore.toFixed(1)}` : evalScore.toFixed(1);
+                      const moveWithEval = `${move.san} (${formattedEval})`;
+                      engineMoveCaptureRef.current[multipvNumber - 1] = moveWithEval;
                       setPossibleMoves(engineMoveCaptureRef.current);
                       setShowPossibleMoves(true);
                     }
                   } catch (error) {
-                    // If conversion fails, use UCI as fallback
-                    engineMoveCaptureRef.current[multipvNumber - 1] = uciMove;
+                    // If conversion fails, use UCI with eval as fallback
+                    const formattedEval = evalScore > 0 ? `+${evalScore.toFixed(1)}` : evalScore.toFixed(1);
+                    const moveWithEval = `${uciMove} (${formattedEval})`;
+                    engineMoveCaptureRef.current[multipvNumber - 1] = moveWithEval;
                     setPossibleMoves(engineMoveCaptureRef.current);
                     setShowPossibleMoves(true);
                   }
