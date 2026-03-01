@@ -116,15 +116,16 @@ function App(): React.JSX.Element {
             const parts = line.split(' ');
             const scoreIndex = parts.indexOf('cp');
             const mateIndex = parts.indexOf('mate');
-
+            const turnFromEngine = line.includes(' w ') ? 'w' : line.includes(' b ') ? 'b' : turnRef.current;
+            
             if (scoreIndex !== -1) {
               let score = parseInt(parts[scoreIndex + 1], 10) / 100;
               // engine returns score from player's perspective (when it's the computer's move) 
-              setEvaluation(turnRef.current === 'w' ? score : -score);
+              setEvaluation(turnFromEngine === 'w' ? score : -score);
             } else if (mateIndex !== -1) {
               const mateIn = parseInt(parts[mateIndex + 1], 10);
               const score = mateIn > 0 ? 100 : -100;
-              setEvaluation(turnRef.current === 'w' ? score : -score);
+              setEvaluation(turnFromEngine === 'w' ? score : -score);
             }
           }
 
@@ -331,6 +332,7 @@ function App(): React.JSX.Element {
 
   // Evaluate a position without playing a move
   const evalPositionOnly = (fen: string, turn: 'w' | 'b') => {
+    engine.send("stop")
     isEvalOnlyRef.current = true;
     turnRef.current = turn;
     const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
@@ -350,7 +352,7 @@ function App(): React.JSX.Element {
     const reviewIdx = historyIndexRef.current;
     isReviewingRef.current = false;
 
-    // Record move in history, truncating any future moves if we were in review mode
+    // Record move in history, truncating any future moves
     setMoveHistory(prev => {
       const truncated = wasReviewing
         ? prev.slice(0, reviewIdx + 1)
@@ -372,7 +374,7 @@ function App(): React.JSX.Element {
   };
 
   const handleReset = () => {
-    setEvaluation(0);
+    setEvaluation(0.2);
     setTurn('w');
     turnRef.current = 'w';
     setMoveHistory([]);
@@ -401,6 +403,7 @@ function App(): React.JSX.Element {
       const turn = (fenPosition.split(' ')[1] || 'w') as 'w' | 'b';
       setTurn(turn);
       turnRef.current = turn;
+      evalPositionOnly(fenPosition, turn);
       setComputerMode('Database');
       boardRef.current?.setFen(fenPosition);
       engine.send('ucinewgame');
@@ -427,8 +430,6 @@ function App(): React.JSX.Element {
     setComputerColor(newComputerColor);
     computerColorRef.current = newComputerColor;
     boardRef.current?.setOrientation(newOrientation);
-
-    // Check if it became the computer's turn after flipping colors
     triggerComputerIfItsTurn(turnRef.current, currentFenRef.current);
   };
 
@@ -455,6 +456,7 @@ function App(): React.JSX.Element {
   const handleLoadPgnFromText = () => {
     const text = pgnInput.trim();
     if (!text) {
+      //TODO: add alert also to FEN
       Alert.alert('Error', 'Please paste a PGN first.');
       return;
     }
@@ -476,12 +478,10 @@ function App(): React.JSX.Element {
       pgnExhaustionIndexRef.current = null;
       lichessExhaustionIndexRef.current = null;
 
-      // Reset the board to starting position manually (don't call handleReset to avoid mode conflicts)
       currentFenRef.current = 'startpos';
       startFenRef.current = 'startpos';
       setTurn('w');
       turnRef.current = 'w';
-      setEvaluation(0);
       setMoveHistory([]);
       historyIndexRef.current = -1;
       isReviewingRef.current = false;
@@ -493,7 +493,6 @@ function App(): React.JSX.Element {
 
       triggerComputerIfItsTurn('w', 'startpos');
 
-      Alert.alert('Success', 'PGN loaded. Board reset. Computer will play from this PGN.');
       setIsPgnModalVisible(false);
       setPgnInput('');
     } catch (e) {
@@ -510,15 +509,15 @@ function App(): React.JSX.Element {
     const newTurn = (parts[1] || 'w') as 'w' | 'b';
 
     currentFenRef.current = cleanFen;
-    startFenRef.current = cleanFen; // Remember this as the game's starting point
+    startFenRef.current = cleanFen;
     setTurn(newTurn);
     turnRef.current = newTurn;
-    setEvaluation(0);
+    evalPositionOnly(cleanFen, newTurn);
     setMoveHistory([]);
     historyIndexRef.current = -1;
     isReviewingRef.current = false;
     setLoadedType('fen');
-    setComputerMode('Database'); // FEN positions use Database mode by default
+    setComputerMode('Database');
 
     boardRef.current?.setFen(cleanFen);
     engine.send('ucinewgame');
@@ -530,28 +529,22 @@ function App(): React.JSX.Element {
   };
 
   const handleStepBack = () => {
-    // Already at the very start — nowhere to go further back
     if (historyIndexRef.current === -1) return;
 
-    // Set review mode synchronously BEFORE anything async,
-    // so any in-flight bestmove is caught by the guard above.
     isReviewingRef.current = true;
-    engine.send('stop'); // cancel any ongoing engine search
+    engine.send('stop');
 
     setMoveHistory(prev => {
-      // Check if there's any history to navigate
       if (!prev || prev.length === 0) {
         isReviewingRef.current = false;
         historyIndexRef.current = -1;
         return prev;
       }
 
-      // Use the actual current index directly — never derive from -1 to prev.length-1 here
       const currentIdx = historyIndexRef.current;
       const newIdx = Math.max(-1, currentIdx - 2);
       historyIndexRef.current = newIdx;
-      setShowPossibleMoves(false); // Hide moves modal when navigating back
-      // isReviewingRef stays true (we always go back into history)
+      setShowPossibleMoves(false);
 
       if (newIdx >= 0) {
         const targetFen = prev[newIdx]?.fen;
@@ -609,20 +602,17 @@ function App(): React.JSX.Element {
   };
 
   const handleStepForward = () => {
-    // Set review mode synchronously BEFORE anything async
     isReviewingRef.current = true;
-    setShowPossibleMoves(false); // Hide moves modal when navigating forward
-    engine.send('stop'); // cancel any ongoing engine search
+    setShowPossibleMoves(false);
+    engine.send('stop');
 
     setMoveHistory(prev => {
-      // SAFEGUARD: If prev is undefined, return empty array to prevent crashes
       if (!prev) {
         isReviewingRef.current = false;
         historyIndexRef.current = -1;
         return [];
       }
 
-      // Check if there's any history to navigate
       if (prev.length === 0) {
         isReviewingRef.current = false;
         historyIndexRef.current = -1;
@@ -638,10 +628,12 @@ function App(): React.JSX.Element {
         return prev;
       }
 
+      //TODO: Should always evaluate elo if moving
+
       // If we're at or past the last move, go to latest position
       if (currentIdx >= prev.length - 1) {
         isReviewingRef.current = false;
-        historyIndexRef.current = -1; // Go to latest position
+        historyIndexRef.current = -1;
         const latestFen = prev[prev.length - 1]?.fen || 'startpos';
         currentFenRef.current = latestFen;
 
@@ -651,8 +643,6 @@ function App(): React.JSX.Element {
         setTurn(latestTurn);
         turnRef.current = latestTurn;
 
-        // DON'T trigger computer immediately - let the normal flow handle it
-        // triggerComputerIfItsTurn(latestTurn, latestFen);
         return prev;
       }
 
@@ -682,15 +672,13 @@ function App(): React.JSX.Element {
 
   const handleEloChange = (elo: number) => {
     botEloRef.current = elo;
-    setBotElo(elo); // Update the state to reflect in settings
+    setBotElo(elo);
 
-    // Apply ELO settings to engine
-    if (elo === 3500) {
+    if (elo === 3200) {
       // Stockfish mode - disable Elo limit for maximum strength
       engine.send('setoption name UCI_LimitStrength value false');
       engine.send('isready');
     } else {
-      // Normal Elo-limited mode
       engine.send('setoption name UCI_LimitStrength value true');
       engine.send(`setoption name UCI_Elo value ${elo}`);
       engine.send('isready');
@@ -698,7 +686,6 @@ function App(): React.JSX.Element {
 
     // Reset game so new ELO takes effect cleanly, but preserve loaded content
     if (loadedType === 'pgn') {
-      // For PGN, reset to starting position with PGN mode preserved
       currentFenRef.current = 'startpos';
       startFenRef.current = 'startpos';
       setTurn('w');
@@ -729,6 +716,7 @@ function App(): React.JSX.Element {
     setComputerMode('Database');
 
     // Reset to normal starting position
+    //TODO: Shouldn't just call handleReset()?
     currentFenRef.current = 'startpos';
     startFenRef.current = 'startpos';
     setTurn('w');
@@ -762,7 +750,6 @@ function App(): React.JSX.Element {
     }
 
     if (loadedType === 'pgn' && pgnTree) {
-      // Get PGN moves for current position
       const normFen = currentFen === 'startpos'
         ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq'
         : currentFen.split(' ').slice(0, 3).join(' ');
@@ -771,7 +758,6 @@ function App(): React.JSX.Element {
       setPossibleMoves(moves);
       setShowPossibleMoves(true);
     } else if (loadedType === 'fen' || loadedType === 'none') {
-      // Get Lichess moves for current position
       try {
         const fenForApi = currentFen === 'startpos'
           ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -815,6 +801,7 @@ function App(): React.JSX.Element {
         setShowPossibleMoves(true);
       }
     } else {
+      //TODO: Add engine moves
       // Engine mode - show message
       setPossibleMoves(['Engine mode - no opening book']);
       setShowPossibleMoves(true);
