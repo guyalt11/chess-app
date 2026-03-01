@@ -58,6 +58,8 @@ interface Props {
     onDbMaxRatingChange: (rating: number | null) => void;
     dbPercentageThreshold: number;
     onDbPercentageThresholdChange: (threshold: number) => void;
+    engineDepth: number;
+    onEngineDepthChange: (depth: number) => void;
 }
 
 // Community Slider Component
@@ -115,7 +117,9 @@ export default function SettingsModal({
     dbMaxRating,
     onDbMaxRatingChange,
     dbPercentageThreshold,
-    onDbPercentageThresholdChange
+    onDbPercentageThresholdChange,
+    engineDepth,
+    onEngineDepthChange
 }: Props) {
     if (!visible) return null;
 
@@ -245,6 +249,23 @@ export default function SettingsModal({
                             <Text style={styles.clearRatingsButtonText}>Clear Rating Filters</Text>
                         </TouchableOpacity>
                     </View>
+
+                    <View style={{ height: 40 }} />
+
+                    {/* Engine Settings Section */}
+                    <Text style={styles.sectionLabel}>⚙️ Engine Settings</Text>
+                    <Text style={styles.sectionSub}>Configure engine analysis parameters</Text>
+
+                    {/* Engine Depth Slider */}
+                    <CommunitySlider
+                        label="Engine Depth"
+                        description="Analysis depth for engine calculations (higher = stronger but slower)"
+                        value={engineDepth}
+                        onValueChange={onEngineDepthChange}
+                        minimumValue={10}
+                        maximumValue={30}
+                        step={1}
+                    />
 
                     <View style={{ height: 40 }} />
                 </ScrollView>

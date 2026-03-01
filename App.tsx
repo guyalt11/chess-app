@@ -105,6 +105,7 @@ function App(): React.JSX.Element {
   const [dbMinRating, setDbMinRating] = useState<number | null>(null);
   const [dbMaxRating, setDbMaxRating] = useState<number | null>(null);
   const [dbPercentageThreshold, setDbPercentageThreshold] = useState<number>(1);
+  const [engineDepth, setEngineDepth] = useState<number>(20);
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -113,7 +114,6 @@ function App(): React.JSX.Element {
         await engine.start();
 
         engine.onOutput((line) => {
-          console.log(line)
           // Parse Evaluation Score
           if (line.includes('score cp') || line.includes('score mate')) {
             const parts = line.split(' ');
@@ -314,10 +314,9 @@ function App(): React.JSX.Element {
 
       // Check for rate limiting
       if (response.status === 429) {
-        console.log('Lichess API rate limit exceeded.');
-        console.log(url);
+        console.error('Lichess API rate limit exceeded.');
         setComputerMode('Engine');
-                const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
+        const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
         engine.send(`position ${pos}`);
         engine.send('go movetime 1000');
         return;
@@ -341,7 +340,7 @@ function App(): React.JSX.Element {
         // Track the position where Lichess was exhausted
         lichessExhaustionIndexRef.current = historyIndexRef.current;
         setComputerMode('Engine');
-                // Fallback to engine
+        // Fallback to engine
         const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
         engine.send(`position ${pos}`);
         engine.send('go movetime 1000');
@@ -374,12 +373,12 @@ function App(): React.JSX.Element {
       `;
       boardRef.current?.injectJavaScript?.(script);
     } catch (error) {
-      console.log('DB Error:', error);
+      console.error('DB Error:', error);
       // Check if it's a rate limit error
       if (error instanceof Error && error.message.includes('429')) {
-        console.log('Rate limit error in catch block');
+        console.error('Rate limit error in catch block');
       } else {
-        console.log('Connection error in catch block');
+        console.error('Connection error in catch block');
       }
       setComputerMode('Engine');
       const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
@@ -396,8 +395,7 @@ function App(): React.JSX.Element {
     turnRef.current = turn;
     const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
     engine.send(`position ${pos}`);
-    //TODO: add settings for depth
-    engine.send('go depth 12');
+    engine.send(`go depth ${engineDepth}`);
   };
 
   const handleMove = (moveInfo: { from: string; to: string; fen: string; san?: string }) => {
@@ -862,8 +860,7 @@ function App(): React.JSX.Element {
     } else {
       const pos = currentFenRef.current === 'startpos' ? 'startpos' : `fen ${currentFenRef.current}`;
       engine.send(`position ${pos}`);
-      //TODO: depth should be adjustable in Settings
-      engine.send('go depth 20');
+      engine.send(`go depth ${engineDepth}`);
     }
   };
 
@@ -1214,6 +1211,8 @@ function App(): React.JSX.Element {
           onDbMaxRatingChange={setDbMaxRating}
           dbPercentageThreshold={dbPercentageThreshold}
           onDbPercentageThresholdChange={setDbPercentageThreshold}
+          engineDepth={engineDepth}
+          onEngineDepthChange={setEngineDepth}
         />
       </SafeAreaView>
     </View>
