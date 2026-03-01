@@ -60,6 +60,8 @@ interface Props {
     onDbPercentageThresholdChange: (threshold: number) => void;
     engineDepth: number;
     onEngineDepthChange: (depth: number) => void;
+    engineMoveTime: number;
+    onEngineMoveTimeChange: (moveTime: number) => void;
 }
 
 // Community Slider Component
@@ -119,7 +121,9 @@ export default function SettingsModal({
     dbPercentageThreshold,
     onDbPercentageThresholdChange,
     engineDepth,
-    onEngineDepthChange
+    onEngineDepthChange,
+    engineMoveTime,
+    onEngineMoveTimeChange
 }: Props) {
     if (!visible) return null;
 
@@ -265,6 +269,17 @@ export default function SettingsModal({
                         minimumValue={10}
                         maximumValue={30}
                         step={1}
+                    />
+
+                    {/* Engine Move Time Slider */}
+                    <CommunitySlider
+                        label="Engine Move Time"
+                        description="Time in seconds the engine thinks per move (higher = stronger but slower)"
+                        value={Math.round(engineMoveTime / 100) / 10}
+                        onValueChange={(value) => onEngineMoveTimeChange(Math.round(value * 1000))}
+                        minimumValue={0.1}
+                        maximumValue={10}
+                        step={0.1}
                     />
 
                     <View style={{ height: 40 }} />

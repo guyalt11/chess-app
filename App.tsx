@@ -106,6 +106,7 @@ function App(): React.JSX.Element {
   const [dbMaxRating, setDbMaxRating] = useState<number | null>(null);
   const [dbPercentageThreshold, setDbPercentageThreshold] = useState<number>(1);
   const [engineDepth, setEngineDepth] = useState<number>(20);
+  const [engineMoveTime, setEngineMoveTime] = useState<number>(1000);
 
   useEffect(() => {
     const setupEngine = async () => {
@@ -283,7 +284,7 @@ function App(): React.JSX.Element {
           // Engine mode: let Stockfish decide
           const pos = currentFen === 'startpos' ? 'startpos' : `fen ${currentFen}`;
           engine.send(`position ${pos}`);
-          engine.send('go movetime 1000');
+          engine.send(`go movetime ${engineMoveTime}`);
         } else {
           // DB mode: query Lichess opening explorer
           playLichessDbMove(currentFen);
@@ -318,7 +319,7 @@ function App(): React.JSX.Element {
         setComputerMode('Engine');
         const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
         engine.send(`position ${pos}`);
-        engine.send('go movetime 1000');
+        engine.send(`go movetime ${engineMoveTime}`);
         return;
       }
 
@@ -343,7 +344,7 @@ function App(): React.JSX.Element {
         // Fallback to engine
         const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
         engine.send(`position ${pos}`);
-        engine.send('go movetime 1000');
+        engine.send(`go movetime ${engineMoveTime}`);
         return;
       }
 
@@ -383,8 +384,7 @@ function App(): React.JSX.Element {
       setComputerMode('Engine');
       const pos = fen === 'startpos' ? 'startpos' : `fen ${fen}`;
       engine.send(`position ${pos}`);
-      //TODO: modular calc time
-      engine.send('go movetime 1000');
+      engine.send(`go movetime ${engineMoveTime}`);
     }
   };
 
@@ -1191,6 +1191,8 @@ function App(): React.JSX.Element {
           onDbPercentageThresholdChange={setDbPercentageThreshold}
           engineDepth={engineDepth}
           onEngineDepthChange={setEngineDepth}
+          engineMoveTime={engineMoveTime}
+          onEngineMoveTimeChange={setEngineMoveTime}
         />
       </SafeAreaView>
     </View>
